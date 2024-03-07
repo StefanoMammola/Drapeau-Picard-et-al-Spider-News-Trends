@@ -47,7 +47,7 @@ str(db)
 
 #combine bites and deadly bites
 db <- db %>% mutate(TypeEvent = Bite + Death)
-db$TypeEvent <- as.factor(db$TypeEvent) ; levels(db$TypeEvent) <- c("Encounter","Bite","Bite")
+db$TypeEvent <- as.factor(db$TypeEvent) ; levels(db$TypeEvent) <- c("Encounter","Bite","Deadly Bite")
 
 #combine experts
 db <- db %>% mutate(Other_Experts = Expert_doctor + Expert_others)
@@ -76,6 +76,8 @@ db <- within(db, period <- relevel(period, ref = "before"))
 #######################
 # Analysis for Gtrend #
 #######################
+
+# Calculating trend -------------------------------------------------------
 
 db_trend <- db[db$data_source == "GoogleTrends",]
 
@@ -106,7 +108,7 @@ for(i in 1 : nlevels(db_trend$event_id)) {
   }
   
   #store data for delta
-  db_delta_i <- data.frame(ID             = rep(levels(db$ID)[i],j),
+  db_delta_i <- data.frame(ID             = rep(levels(db$event_id)[i],j),
                            term           = levels(db_i$search_term),
                            trend          = delta,
                            country        = rep(levels(db_i$country),j),
@@ -117,7 +119,8 @@ for(i in 1 : nlevels(db_trend$event_id)) {
                            expert_spider  = rep(levels(as.factor(db_i$Expert_arachnologist)),j),
                            other_experts  = rep(levels(as.factor(db_i$Other_Experts)),j),
                            Figures        = rep(levels(as.factor(db_i$Figures)),j),
-                           Genus          = rep(levels(as.factor(db_i$Genus)),j))
+                           Genus          = rep(levels(as.factor(db_i$Genus)),j),
+                           Family          = rep(levels(as.factor(db_i$Family)),j))
   
   if(i > 1)
     db_delta <- rbind(db_delta, db_delta_i)
@@ -128,32 +131,13 @@ for(i in 1 : nlevels(db_trend$event_id)) {
 
 db_delta <- db_delta %>%  mutate_if(is.character, as.factor)
 
-####################
-# Data exploration #
-####################
+#levels(db_delta$circulation) <- c("(Inter)national", "(Inter)national", "Regional")
 
-ggplot(db, aes(x = day, y = hits)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) + 
-  labs(title = "Overall trend",
-       x = "Day",
-       y = "Hits")
+# Data analysis: General terms ---------------------------------------
 
-ggplot(db, aes(x = jour, y = hits, group = n_publication, color = as.factor(n_publication))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +  
-  labs(title = "Overall trend by publication",
-       x = "Day",
-       y = "Hits")
+db_delta_general <- db_delta[db_delta$term %in% c("spider", "spider bite"),] ; db_delta_general <- droplevels(db_delta_general)
 
-
-
-
-#########################
-# Data analysis & plots #
-#########################
-
-(plot1a <- ggplot(db_delta, aes(x = trend, color = term, fill = term)) +
+(plot1a <- ggplot(db_delta_general, aes(x = trend, color = term, fill = term)) +
   geom_density(alpha = 0.7)+
   geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.5)+
   scale_color_manual("Search term", values = c("grey40","orange"))+
@@ -192,10 +176,11 @@ sum(db_delta[db_delta$term == "spider",]$trend > 0) / nrow(db_delta[db_delta$ter
 table(db_delta$circulation) 
 table(db_delta$TypeEvent) 
 table(db_delta$sensationalism) 
-levels(db_delta$circulation) <- c("(Inter)national", "(Inter)national", "Regional")
 
 #linear model
-m1 <- lm(trend ~ term + circulation + TypeEvent + sensationalism + expert_spider + other_experts, data = db_delta)
+m1 <- lm(trend ~ country + circulation + TypeEvent + 
+                 Figures + error + sensationalism + 
+                 expert_spider + other_experts, data = db_delta_general[db_delta_general$term == "spider",])
 summary(m1)
 
 performance::check_model(m1)
