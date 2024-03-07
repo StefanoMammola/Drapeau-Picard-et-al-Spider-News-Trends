@@ -17,6 +17,7 @@ if(!require("pacman")) {install.packages("pacman")}
 pacman::p_load("dplyr",
                "parameters",
                "performance",
+               "ggdist",
                "see",
                "tidyverse",
                "tidylog")
@@ -120,7 +121,10 @@ for(i in 1 : nlevels(db_trend$event_id)) {
                            other_experts  = rep(levels(as.factor(db_i$Other_Experts)),j),
                            Figures        = rep(levels(as.factor(db_i$Figures)),j),
                            Genus          = rep(levels(as.factor(db_i$Genus)),j),
-                           Family          = rep(levels(as.factor(db_i$Family)),j))
+                           Family         = rep(levels(as.factor(db_i$Family)),j),
+                           Newspaper      = rep(levels(as.factor(db_i$Newspaper)),j),
+                           m              = rep(levels(as.factor(db_i$m)),j),
+                           yr             = rep(levels(as.factor(db_i$yr)),j))
   
   if(i > 1)
     db_delta <- rbind(db_delta, db_delta_i)
@@ -135,38 +139,52 @@ db_delta <- db_delta %>%  mutate_if(is.character, as.factor)
 
 # Data analysis: General terms ---------------------------------------
 
-db_delta_general <- db_delta[db_delta$term %in% c("spider", "spider bite"),] ; db_delta_general <- droplevels(db_delta_general)
+#db_delta_general <- db_delta[db_delta$term %in% c("spider", "spider bite"),] ; db_delta_general <- droplevels(db_delta_general)
 
-(plot1a <- ggplot(db_delta_general, aes(x = trend, color = term, fill = term)) +
-  geom_density(alpha = 0.7)+
-  geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.5)+
-  scale_color_manual("Search term", values = c("grey40","orange"))+
-  scale_fill_manual("Search term", values = c("grey40","orange"))+
-  labs(x = "Intercept change for search volume in gTrend",
-       y = "Density")+
+my.colors <- c("grey40","orange", "red", "blue")
+
+(plot1a <- db_delta %>% ggplot(aes(x = trend, y = term, fill = term, color = term)) +
+  geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
+  scale_color_manual("Search term", values = my.colors)+
+  scale_fill_manual("Search term", values = my.colors)+
   
-  annotate("segment", x = 0.7, xend = 1, y = 3, yend = 3,
+  labs(x = "Intercept change for search volume in gTrend",
+       y = "Density of values by search term")+
+  
+  ggdist::stat_slab(
+    data = ~ .x,
+    aes(fill_ramp = stat(abs(x))),
+    #, color_ramp = stat(-dnorm(x, 0, .5))),
+    color = "gray15",
+    size = .2,
+    alpha = .9,
+    expand = FALSE,
+    trim = TRUE,
+    height = 1.5
+  ) + 
+  
+  annotate("segment", x = 0.7, xend = 1, y = 4.7, yend = 4.7,
            color = "grey10",
            arrow = arrow(ends = "last", 
                          angle = 15, 
                          length = unit(.2,"cm")))+
   
-  annotate("text", x = 0.3, y = 3, hjust = 0, vjust = 0.5,
+  annotate("text", x = 0.3, y = 5, hjust = 0, vjust = 0.5,
            size = 3,
            color = "grey10",
            label = "Greater search intensity\nafter the news")+
   
-  annotate("segment", x = -0.7, xend = -1, y = 3, yend = 3,
+  annotate("segment", x = -0.7, xend = -1, y = 4.7, yend = 4.7,
            color = "grey10",
            arrow = arrow(ends = "last", 
                          angle = 15, 
                          length = unit(.2,"cm")))+
   
-  annotate("text", x = -0.3, y = 3, hjust =1, vjust = 0.5,
+  annotate("text", x = -0.3, y = 5, hjust =1, vjust = 0.5,
            size = 3,
            color = "grey10",
            label = "Greater search intensity\nbefore the news")+
-  theme(legend.position = c(0.1,0.5))
+  theme(legend.position = "none")
 )
 
 sum(db_delta[db_delta$term == "spider bite",]$trend > 0) / nrow(db_delta[db_delta$term == "spider bite",])
@@ -177,17 +195,37 @@ table(db_delta$circulation)
 table(db_delta$TypeEvent) 
 table(db_delta$sensationalism) 
 
-#linear model
-m1 <- lm(trend ~ country + circulation + TypeEvent + 
-                 Figures + error + sensationalism + 
-                 expert_spider + other_experts, data = db_delta_general[db_delta_general$term == "spider",])
-summary(m1)
+# model.formula <- as.formula("trend ~ country + circulation + 
+#                                       TypeEvent + Figures + error + 
+#                                      sensationalism + expert_spider + other_experts")
+# 
 
-performance::check_model(m1)
-performance::r2(m1)
+db_delta$yr_m <- paste(db_delta$yr, db_delta$m)
+
+#linear model
+# m1 <- lm(model.formula, data = db_delta[db_delta$term == "spider",])
+# 
+# m2 <- lm(model.formula, data = db_delta[db_delta$term == "spider bite",])
+# 
+# m3 <- lm(model.formula, data = db_delta[db_delta$term == "brown recluse",])
+# 
+# m4 <- lm(model.formula, data = db_delta[db_delta$term == "black widow",])
+
+m5 <- lme4::lmer(trend ~ term + country + circulation + 
+           TypeEvent + Figures + error + 
+           sensationalism + expert_spider + other_experts + (1 | yr_m), data = db_delta)
+
+
+(par.M5 <- parameters::parameters(m5))
+
+performance::check_model(m5)
+performance::r2(m5)
 
 #plot of the model
 (par.M1 <- parameters::parameters(m1))
+(par.M2 <- parameters::parameters(m2))
+(par.M3 <- parameters::parameters(m3))
+(par.M4 <- parameters::parameters(m4))
 
 (table.M1 <- par.M1 %>% dplyr::select(Parameter,
                                      Beta = Coefficient,
