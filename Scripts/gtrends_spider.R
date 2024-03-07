@@ -13,12 +13,13 @@
 # R packages #
 ##############
 
-#install.packages("pacman")
-pacman::p_load(dplyr,
-               parameters,
-               performance,
-               see,
-               tidyverse)
+if(!require("pacman")) {install.packages("pacman")}
+pacman::p_load("dplyr",
+               "parameters",
+               "performance",
+               "see",
+               "tidyverse",
+               "tidylog")
 
 #################
 # plot settings #
@@ -37,34 +38,95 @@ theme_update(
 # Data preparation #
 ####################
 
-# Clean the workspace -----------------------------------------------------
-
-rm(list = ls())
-
-# Set working directory ---------------------------------------------------
-
-setwd("/Users/stefanomammola/Desktop/PAPERS IN CORSO/DRAPEAU PICARD ET AL Spider news/Analysis")
-
 # Import data -------------------------------------------------------------
 
-db <- read.csv("gtrends_hits_clean.csv" , header=TRUE, as.is = FALSE)
+db <- read.csv("Data/spiders_data_metadata_masterfile.csv" , header=TRUE, as.is = FALSE) |>
+  dplyr::select(c(-1))
 
 str(db)
 
-#rename variables
-db$day            <- db$jour
-db$sensationalism <- db$sensationel  
-db$error          <- db$erreur
-db$event_date     <- db$chevauchement_date
-db$hits           <- db$hits_canada
-
 #combine bites and deadly bites
-db <- db %>% mutate(TypeEvent = bite + death)
+db <- db %>% mutate(TypeEvent = Bite + Death)
 db$TypeEvent <- as.factor(db$TypeEvent) ; levels(db$TypeEvent) <- c("Encounter","Bite","Bite")
 
 #combine experts
 db <- db %>% mutate(Other_Experts = Expert_doctor + Expert_others)
-db$Other_Experts <- ifelse(db$Other_Experts > 0 , 1 , 0)
+db$Other_Experts <- ifelse(db$Other_Experts > 0 , 1 , 0) %>% as.factor()
+
+#Total number of Errors
+db <- db %>% mutate(TotalErrors = tidyr::replace_na(as.numeric(Taxonomic_error),0) + 
+                      tidyr::replace_na(as.numeric(Venom_error),0)     + 
+                      tidyr::replace_na(as.numeric(Anatomy_error),0)  + 
+                      tidyr::replace_na(as.numeric(Photo_error),0))
+
+db$Errors <- ifelse(db$TotalErrors > 0 , 1 , 0) %>% as.factor()
+
+# Figures
+
+#Total number of Errors
+db <- db %>% mutate(Figures = tidyr::replace_na(as.numeric(Figure_species),0) + 
+                      tidyr::replace_na(as.numeric(Figure_bite),0))
+
+db$Figures <- ifelse(db$Figures > 0 , 1 , 0) %>% as.factor()
+
+# create a variable period
+db$period <- ifelse(db$day < 1 , "before" , "after") %>% as.factor()
+db <- within(db, period <- relevel(period, ref = "before"))
+
+#######################
+# Analysis for Gtrend #
+#######################
+
+db_trend <- db[db$data_source == "GoogleTrends",]
+
+db_trend <- droplevels(db_trend)
+
+levels(db_trend$search_term) <- c(rep("black widow",2),rep("brown recluse",2),rep("spider",2),rep("spider bite",2))
+
+#Here, for each news, we model the temporal trend before and after the publication for each search term
+
+for(i in 1 : nlevels(db_trend$event_id)) {
+  
+  db_i <- db_trend[db_trend$event_id == levels(db_trend$event_id)[i],] #subdataset for the i news
+  
+  db_i <- droplevels(db_i)
+  
+  delta  <- c()
+  coef   <- c()
+  
+  #model trend before and after
+  for(j in 1:nlevels(db_i$search_term)) {
+    
+    db_i_j <- db_i[db_i$search_term == levels(db_i$search_term)[j], ] #extract subdataset for the search term j
+
+    model <- glm(cbind(hits,rep(100,nrow(db_i_j))) ~ period, data = db_i_j, family = "binomial")
+
+    delta <- append(delta, model$coefficients[2])
+    
+  }
+  
+  #store data for delta
+  db_delta_i <- data.frame(ID             = rep(levels(db$ID)[i],j),
+                           term           = levels(db_i$search_term),
+                           trend          = delta,
+                           country        = rep(levels(db_i$country),j),
+                           circulation    = rep(levels(db_i$Circulation),j),
+                           TypeEvent      = rep(levels(db_i$TypeEvent),j),
+                           sensationalism = rep(levels(as.factor(db_i$Sensationalism)),j),
+                           error          = rep(levels(as.factor(db_i$Errors)),j),
+                           expert_spider  = rep(levels(as.factor(db_i$Expert_arachnologist)),j),
+                           other_experts  = rep(levels(as.factor(db_i$Other_Experts)),j),
+                           Figures        = rep(levels(as.factor(db_i$Figures)),j),
+                           Genus          = rep(levels(as.factor(db_i$Genus)),j))
+  
+  if(i > 1)
+    db_delta <- rbind(db_delta, db_delta_i)
+  else
+    db_delta <- db_delta_i
+  
+}
+
+db_delta <- db_delta %>%  mutate_if(is.character, as.factor)
 
 ####################
 # Data exploration #
@@ -84,53 +146,8 @@ ggplot(db, aes(x = jour, y = hits, group = n_publication, color = as.factor(n_pu
        x = "Day",
        y = "Hits")
 
-#####################
-# Data manipulation #
-#####################
 
-#Here, for each news, we model the temporal trend before and after the publication for each search term
 
-db <- within(db, period <- relevel(period, ref = "before"))
-
-for(i in 1:nlevels(db$ID)) {
-  
-  db_i <- db[db$ID == levels(db$ID)[i],] #subdataset for the i news
-  
-  db_i <- droplevels(db_i)
-  
-  delta  <- c()
-  coef   <- c()
-  
-  #model trend before and after
-  for(j in 1:nlevels(db_i$short_term)) {
-    
-    db_i_j <- db_i[db_i$short_term == levels(db_i$short_term)[j], ] #extract subdataset for the search term j
-
-    model <- glm(cbind(hits,rep(100,nrow(db_i_j))) ~ period, data = db_i_j, family = "binomial")
-
-    delta <- append(delta, model$coefficients[2])
-    
-  }
-  
-  #store data for delta
-  db_delta_i <- data.frame(ID             = rep(levels(db$ID)[i],2),
-                           term           = levels(db_i$short_term),
-                           trend          = delta,
-                           circulation    = levels(db_i$Circulation),
-                           TypeEvent      = levels(db_i$TypeEvent),
-                           sensationalism = levels(as.factor(db_i$sensationalism)),
-                           error          = levels(as.factor(db_i$error)),
-                           expert_spider  = levels(as.factor(db_i$Expert_arachnologist)),
-                           other_experts  = levels(as.factor(db_i$Other_Experts))
-                           )
-  if(i > 1)
-    db_delta <- rbind(db_delta, db_delta_i)
-  else
-    db_delta <- db_delta_i
-  
-}
-
-db_delta <- db_delta %>%  mutate_if(is.character, as.factor)
 
 #########################
 # Data analysis & plots #
