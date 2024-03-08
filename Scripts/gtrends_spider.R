@@ -48,7 +48,7 @@ str(db)
 
 #combine bites and deadly bites
 db <- db %>% mutate(TypeEvent = Bite + Death)
-db$TypeEvent <- as.factor(db$TypeEvent) ; levels(db$TypeEvent) <- c("Encounter","Bite","Deadly Bite")
+db$TypeEvent <- as.factor(db$TypeEvent) ; levels(db$TypeEvent) <- c("Encounter","Bite","Deadly bite")
 
 #combine experts
 db <- db %>% mutate(Other_Experts = Expert_doctor + Expert_others)
@@ -73,6 +73,9 @@ db$Figures <- ifelse(db$Figures > 0 , 1 , 0) %>% as.factor()
 # create a variable period
 db$period <- ifelse(db$day < 1 , "before" , "after") %>% as.factor()
 db <- within(db, period <- relevel(period, ref = "before"))
+
+# check circulation
+levels(db$Circulation) <- c("(Inter)national", "(Inter)national", "Regional")
 
 #######################
 # Analysis for Gtrend #
@@ -127,24 +130,24 @@ for(i in 1 : nlevels(db_trend$event_id)) {
                            yr             = rep(levels(as.factor(db_i$yr)),j))
   
   if(i > 1)
-    db_delta <- rbind(db_delta, db_delta_i)
+    db_delta_Gtrend <- rbind(db_delta_Gtrend, db_delta_i)
   else
-    db_delta <- db_delta_i
+    db_delta_Gtrend <- db_delta_i
   
 }
 
-db_delta <- db_delta %>%  mutate_if(is.character, as.factor)
+db_delta_Gtrend <- db_delta_Gtrend %>%  mutate_if(is.character, as.factor)
 
-#levels(db_delta$circulation) <- c("(Inter)national", "(Inter)national", "Regional")
+# Plot GTrend ---------------------------------------
 
-# Data analysis: General terms ---------------------------------------
+db_delta_Gtrend$term <- factor(db_delta_Gtrend$term, rev(c("spider", "spider bite", "brown recluse", "black widow")))
 
-#db_delta_general <- db_delta[db_delta$term %in% c("spider", "spider bite"),] ; db_delta_general <- droplevels(db_delta_general)
+my.colors <- c("black","darkorange", "blue", "purple")
 
-my.colors <- c("grey40","orange", "red", "blue")
-
-(plot1a <- db_delta %>% ggplot(aes(x = trend, y = term, fill = term, color = term)) +
+(plot1a <- db_delta_Gtrend %>% ggplot(aes(x = trend, y = term, fill = term, color = term)) +
+  xlim(-1.5, 1.5)+
   geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
+  
   scale_color_manual("Search term", values = my.colors)+
   scale_fill_manual("Search term", values = my.colors)+
   
@@ -152,81 +155,79 @@ my.colors <- c("grey40","orange", "red", "blue")
        y = "Density of values by search term")+
   
   ggdist::stat_slab(
-    data = ~ .x,
-    aes(fill_ramp = stat(abs(x))),
-    #, color_ramp = stat(-dnorm(x, 0, .5))),
-    color = "gray15",
+    # data = ~ .x,
+    # aes(fill_ramp = stat(abs(x))),
+    #color = "gray15",
     size = .2,
-    alpha = .9,
+    alpha = 0.5,
     expand = FALSE,
     trim = TRUE,
-    height = 1.5
+    height = 2
   ) + 
   
-  annotate("segment", x = 0.7, xend = 1, y = 4.7, yend = 4.7,
+  annotate("segment", x = 1, xend = 1.3, y = 4.7, yend = 4.7,
            color = "grey10",
            arrow = arrow(ends = "last", 
                          angle = 15, 
                          length = unit(.2,"cm")))+
   
-  annotate("text", x = 0.3, y = 5, hjust = 0, vjust = 0.5,
+  annotate("text", x = 0.6, y = 5, hjust = 0, vjust = 0.5,
            size = 3,
            color = "grey10",
            label = "Greater search intensity\nafter the news")+
   
-  annotate("segment", x = -0.7, xend = -1, y = 4.7, yend = 4.7,
+  annotate("segment", x = -1, xend = -1.3, y = 4.7, yend = 4.7,
            color = "grey10",
            arrow = arrow(ends = "last", 
                          angle = 15, 
                          length = unit(.2,"cm")))+
   
-  annotate("text", x = -0.3, y = 5, hjust =1, vjust = 0.5,
+  annotate("text", x = -0.6, y = 5, hjust =1, vjust = 0.5,
            size = 3,
            color = "grey10",
            label = "Greater search intensity\nbefore the news")+
   theme(legend.position = "none")
 )
 
-sum(db_delta[db_delta$term == "spider bite",]$trend > 0) / nrow(db_delta[db_delta$term == "spider bite",])
-sum(db_delta[db_delta$term == "spider",]$trend > 0) / nrow(db_delta[db_delta$term == "spider",])
+sum(db_delta_Gtrend[db_delta_Gtrend$term == "spider",]$trend > 0) / nrow(db_delta_Gtrend[db_delta_Gtrend$term == "spider",])
+sum(db_delta_Gtrend[db_delta_Gtrend$term == "spider bite",]$trend > 0) / nrow(db_delta_Gtrend[db_delta_Gtrend$term == "spider bite",])
+sum(db_delta_Gtrend[db_delta_Gtrend$term == "brown recluse",]$trend > 0) / nrow(db_delta_Gtrend[db_delta_Gtrend$term == "brown recluse",])
+sum(db_delta_Gtrend[db_delta_Gtrend$term == "black widow",]$trend > 0) / nrow(db_delta_Gtrend[db_delta_Gtrend$term == "black widow",])
 
-#data exploration for lm
-table(db_delta$circulation) 
-table(db_delta$TypeEvent) 
-table(db_delta$sensationalism) 
+# Modelling ---------------------------------------------------------------
 
-# model.formula <- as.formula("trend ~ country + circulation + 
-#                                       TypeEvent + Figures + error + 
-#                                      sensationalism + expert_spider + other_experts")
-# 
+# Creating temporal random factor
+db_delta_Gtrend$yr_m <- paste(db_delta_Gtrend$yr, db_delta_Gtrend$m, sep ="_")
+table(db_delta_Gtrend$yr_m)
 
-db_delta$yr_m <- paste(db_delta$yr, db_delta$m)
+# Random factor newspaper
+table(db_delta_Gtrend$Newspaper)
 
-#linear model
-# m1 <- lm(model.formula, data = db_delta[db_delta$term == "spider",])
-# 
-# m2 <- lm(model.formula, data = db_delta[db_delta$term == "spider bite",])
-# 
-# m3 <- lm(model.formula, data = db_delta[db_delta$term == "brown recluse",])
-# 
-# m4 <- lm(model.formula, data = db_delta[db_delta$term == "black widow",])
+# Setting baselines
+db_delta_Gtrend <- within(db_delta_Gtrend, Regional <- relevel(circulation, ref = "Regional"))
+db_delta_Gtrend <- within(db_delta_Gtrend, TypeEvent <- relevel(TypeEvent, ref = "Encounter"))
+db_delta_Gtrend <- within(db_delta_Gtrend, term <- relevel(term, ref = "spider"))
 
-m5 <- lme4::lmer(trend ~ term + country + circulation + 
+#data exploration: balancing factor levels
+table(db_delta_Gtrend$circulation) 
+table(db_delta_Gtrend$TypeEvent) 
+table(db_delta_Gtrend$sensationalism) 
+table(db_delta_Gtrend$Figures)
+table(db_delta_Gtrend$error) 
+table(db_delta_Gtrend$expert_spider) 
+table(db_delta_Gtrend$other_experts) 
+
+# Model
+m1 <- lme4::lmer(trend ~ term + country + circulation + 
            TypeEvent + Figures + error + 
-           sensationalism + expert_spider + other_experts + (1 | yr_m), data = db_delta)
+           sensationalism + expert_spider + other_experts +
+           (1 | yr_m) + (1 | Newspaper), data = db_delta_Gtrend) #db_delta_Gtrend[-c(2,39),]
 
+performance::check_model(m1)
 
-(par.M5 <- parameters::parameters(m5))
-
-performance::check_model(m5)
-performance::r2(m5)
+(par.M1 <- parameters::parameters(m1))
 
 #plot of the model
-(par.M1 <- parameters::parameters(m1))
-(par.M2 <- parameters::parameters(m2))
-(par.M3 <- parameters::parameters(m3))
-(par.M4 <- parameters::parameters(m4))
-
 (table.M1 <- par.M1 %>% dplyr::select(Parameter,
                                      Beta = Coefficient,
                                      SE,
@@ -235,7 +236,7 @@ performance::r2(m5)
                                      t,
                                      p) %>% 
   data.frame() %>% 
-  mutate_if(is.numeric, ~ round(.,3))) ; rm(par.M1)
+  mutate_if(is.numeric, ~ round(.,3)) %>% na.omit()) ; rm(par.M1)
 
 str(table.M1)
 
@@ -243,21 +244,33 @@ table.M1$Parameter <- as.factor(table.M1$Parameter)
 
 #rename
 levels(table.M1$Parameter) <- c("Intercept", 
-                                "Circulation [Regional]", 
+                                "Circulation [Regional]",
+                                "Country [USA]",
+                                "Errors [yes]",
                                 "Spider expert [yes]",
+                                "Figures [yes]",
                                 "Other experts [yes]",
                                 "Sensationalism [yes]",
+                                "Search Term [Black widow]",
+                                "Search Term [Brown recluse]",
                                 "Search Term [Spider bite]", 
-                                "Event type [Encounter]")
+                                "Event type [Bite]",
+                                "Event type [Deadly bite]")
   
 #sort
 table.M1$Parameter <- factor(table.M1$Parameter, rev(c("Intercept", 
-                                                     "Search Term [Spider bite]", 
-                                                     "Circulation [Regional]", 
-                                                     "Event type [Encounter]", 
-                                                     "Sensationalism [yes]",
-                                                     "Spider expert [yes]",
-                                                     "Other experts [yes]")))
+                                                       "Country [USA]",
+                                                       "Circulation [Regional]",
+                                                       "Event type [Bite]",
+                                                       "Event type [Deadly bite]",
+                                                       "Figures [yes]",
+                                                       "Sensationalism [yes]",
+                                                       "Errors [yes]",
+                                                       "Spider expert [yes]",
+                                                       "Other experts [yes]",
+                                                       "Search Term [Spider bite]",
+                                                       "Search Term [Black widow]",
+                                                       "Search Term [Brown recluse]")))
   
 sign.M1 <- ifelse(table.M1$p > 0.05, "", " *") #Significance
 
@@ -271,247 +284,398 @@ sign.M1 <- ifelse(table.M1$p > 0.05, "", " *") #Significance
     labs(x = expression(paste("Estimated beta" %+-% "95% Confidence interval")),
          y = NULL))
 
-
-pdf(file = "Figure_1.pdf", width = 12, height = 5)
-ggpubr::ggarrange(plot1a, plot1b, ncol = 2, nrow = 1, labels = c("A", "B"))
-dev.off()
-
 ############################### 
-##### Analysis by species ##### 
+##### Analysis Wikipedia ###### 
 ###############################
 
-db_sp <- read.csv("gtrends_per_species.csv" , header=TRUE, as.is = FALSE)
+# Calculating trend -------------------------------------------------------
 
-str(db_sp)
+db_trend <- db[db$data_source == "Wikipedia",]
 
-#rename variables
-db_sp$day            <- db_sp$jour
-db_sp$sensationalism <- db_sp$sensationel  
-db_sp$error          <- db_sp$erreur
-db_sp$event_date     <- db_sp$chevauchement_date
-db_sp$hits           <- db_sp$hits_canada
+db_trend <- db_trend[db_trend$Notes != "behind paywall",]
 
-#combine bites and deadly bites
-db_sp <- db_sp %>% mutate(TypeEvent = bite + death)
-db_sp$TypeEvent <- as.factor(db_sp$TypeEvent) ; levels(db_sp$TypeEvent) <- c("Encounter","Bite","Bite")
+db_trend <- droplevels(db_trend)
 
-#combine experts
-db_sp <- db_sp %>% mutate(Other_Experts = Expert_doctor + Expert_others)
-db_sp$Other_Experts <- ifelse(db_sp$Other_Experts > 0 , 1 , 0)
+levels(db_trend$search_term) <- c("brown recluse", "Latrodectus","spider","spider bite")
 
-#####################
-# Data manipulation #
-#####################
+#Here, for each news, we model the temporal trend before and after the publication for each search term
 
-#Here, for each news, we model the temporal trend before and after the publication
-
-db_sp <- within(db_sp, period <- relevel(period, ref = "before"))
-
-for(i in 1:nlevels(db_sp$ID)) {
+for(i in 1 : nlevels(db_trend$event_id)) {
   
-  db_sp_i <- db_sp[db_sp$ID == levels(db_sp$ID)[i],] #subdataset for the i news
+  db_i <- db_trend[db_trend$event_id == levels(db_trend$event_id)[i],] #subdataset for the i news
   
-  db_sp_i <- droplevels(db_sp_i)
+  db_i <- droplevels(db_i)
   
-  model <- glm(cbind(hits,rep(100,nrow(db_sp_i))) ~ period, data = db_sp_i, family = "binomial")
+  delta  <- c()
+  coef   <- c()
+  
+  #model trend before and after
+  for(j in 1:nlevels(db_i$search_term)) {
     
-  model$coefficients[2]
+    db_i_j <- db_i[db_i$search_term == levels(db_i$search_term)[j], ] #extract subdataset for the search term j
     
+    model <- MASS::glm.nb(hits ~ period, data = db_i_j)
+    
+    delta <- append(delta, model$coefficients[2])
+    
+  }
+  
   #store data for delta
-  db_sp_delta_i <- data.frame(ID          = levels(db_sp$ID)[i],
-                           species        = levels(db_sp_i$simple_term),
-                           trend          = model$coefficients[2],
-                           circulation    = levels(db_sp_i$Circulation),
-                           TypeEvent      = levels(db_sp_i$TypeEvent),
-                           sensationalism = levels(as.factor(db_sp_i$sensationalism)),
-                           error          = levels(as.factor(db_sp_i$error)),
-                           expert_spider  = levels(as.factor(db_sp_i$Expert_arachnologist)),
-                           other_experts  = levels(as.factor(db_sp_i$Other_Experts)))
+  db_delta_i <- data.frame(ID             = rep(levels(db$event_id)[i],j),
+                           term           = levels(db_i$search_term),
+                           trend          = delta,
+                           country        = rep(levels(db_i$country),j),
+                           circulation    = rep(levels(db_i$Circulation),j),
+                           TypeEvent      = rep(levels(db_i$TypeEvent),j),
+                           sensationalism = rep(levels(as.factor(db_i$Sensationalism)),j),
+                           error          = rep(levels(as.factor(db_i$Errors)),j),
+                           expert_spider  = rep(levels(as.factor(db_i$Expert_arachnologist)),j),
+                           other_experts  = rep(levels(as.factor(db_i$Other_Experts)),j),
+                           Figures        = rep(levels(as.factor(db_i$Figures)),j),
+                           Genus          = rep(levels(as.factor(db_i$Genus)),j),
+                           Family         = rep(levels(as.factor(db_i$Family)),j),
+                           Newspaper      = rep(levels(as.factor(db_i$Newspaper)),j),
+                           m              = rep(levels(as.factor(db_i$m)),j),
+                           yr             = rep(levels(as.factor(db_i$yr)),j))
   
   if(i > 1)
-    db_sp_delta <- rbind(db_sp_delta, db_sp_delta_i)
+    db_delta_wiki <- rbind(db_delta_wiki, db_delta_i)
   else
-    db_sp_delta <- db_sp_delta_i
+    db_delta_wiki <- db_delta_i
   
 }
 
-db_sp_delta <- db_sp_delta %>%  mutate_if(is.character, as.factor)
+db_delta_wiki <- db_delta_wiki %>%  mutate_if(is.character, as.factor)
 
-#########################
-# Data analysis & plots #
-#########################
+# Plot wiki ---------------------------------------
 
-(plot2 <- ggplot(db_sp_delta, aes(x = trend, color = species, fill = species)) +
-    geom_density(alpha = 0.7)+
-    geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.5)+
-    scale_color_manual("Species", values = c("grey10","darkred"))+
-    scale_fill_manual("Species", values = c("grey10","darkred"))+
-    labs(x = "Intercept change for search volume in gTrend",
-         y = "Density")+
+db_delta_wiki$term <- factor(db_delta_wiki$term, rev(c("spider", "spider bite", "brown recluse", "Latrodectus")))
+
+my.colors <- c("black","darkorange", "blue", "purple")
+
+(plot2a <- db_delta_wiki %>% ggplot(aes(x = trend, y = term, fill = term, color = term)) +
+    xlim(-1.5, 1.5)+
+    geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
     
-    annotate("segment", x = 0.7, xend = 1, y = 6, yend = 6,
+    scale_color_manual("Search term", values = my.colors)+
+    scale_fill_manual("Search term", values = my.colors)+
+    
+    labs(x = "Intercept change for search volume in Wikipedia",
+         y = "Density of values by search term")+
+    
+    ggdist::stat_slab(
+      # data = ~ .x,
+      # aes(fill_ramp = stat(abs(x))),
+      #color = "gray15",
+      size = .2,
+      alpha = 0.5,
+      expand = FALSE,
+      trim = TRUE,
+      height = 2
+    ) + 
+    
+    annotate("segment", x = 1, xend = 1.3, y = 4.7, yend = 4.7,
              color = "grey10",
              arrow = arrow(ends = "last", 
                            angle = 15, 
                            length = unit(.2,"cm")))+
     
-    annotate("text", x = 0.3, y = 6, hjust = 0, vjust = 0.5,
+    annotate("text", x = 0.6, y = 5, hjust = 0, vjust = 0.5,
              size = 3,
              color = "grey10",
              label = "Greater search intensity\nafter the news")+
     
-    annotate("segment", x = -0.7, xend = -1, y = 6, yend = 6,
+    annotate("segment", x = -1, xend = -1.3, y = 4.7, yend = 4.7,
              color = "grey10",
              arrow = arrow(ends = "last", 
                            angle = 15, 
                            length = unit(.2,"cm")))+
     
-    annotate("text", x = -0.3, y = 6, hjust =1, vjust = 0.5,
+    annotate("text", x = -0.6, y = 5, hjust =1, vjust = 0.5,
              size = 3,
              color = "grey10",
              label = "Greater search intensity\nbefore the news")+
-    theme(legend.position = c(0.1,0.5))
+    theme(legend.position = "none")
 )
 
-sum(db_sp_delta[db_sp_delta$species == "black widow",]$trend > 0) / nrow(db_sp_delta[db_sp_delta$species == "black widow",])
-sum(db_sp_delta[db_sp_delta$species == "brown recluse",]$trend > 0) / nrow(db_sp_delta[db_sp_delta$species == "brown recluse",])
+# Modelling ---------------------------------------------------------------
 
-pdf(file = "Figure_2.pdf", width = 8, height = 5)
-plot2
+# Creating temporal random factor
+db_delta_wiki$yr_m <- paste(db_delta_wiki$yr, db_delta_wiki$m, sep ="_")
+table(db_delta_wiki$yr_m)
+
+# Random factor newspaper
+table(db_delta_wiki$Newspaper)
+
+# Setting baselines
+db_delta_wiki <- within(db_delta_wiki, Regional <- relevel(circulation, ref = "Regional"))
+db_delta_wiki <- within(db_delta_wiki, TypeEvent <- relevel(TypeEvent, ref = "Encounter"))
+db_delta_wiki <- within(db_delta_wiki, term <- relevel(term, ref = "spider"))
+
+#data exploration: balancing factor levels
+table(db_delta_wiki$circulation) 
+table(db_delta_wiki$TypeEvent) 
+table(db_delta_wiki$sensationalism) 
+table(db_delta_wiki$Figures)
+table(db_delta_wiki$error) 
+table(db_delta_wiki$expert_spider) 
+table(db_delta_wiki$other_experts) 
+
+# Model
+m2 <- lme4::lmer(trend ~ term + circulation + 
+                   TypeEvent + Figures + error + 
+                   sensationalism + expert_spider + other_experts +
+                   (1 | yr_m) + (1 | Newspaper), data = db_delta_wiki)
+
+performance::check_model(m2)
+
+(par.M2 <- parameters::parameters(m2))
+
+#plot of the model
+(table.M2 <- par.M2 %>% dplyr::select(Parameter,
+                                      Beta = Coefficient,
+                                      SE,
+                                      CI_low,
+                                      CI_high,
+                                      t,
+                                      p) %>% 
+    data.frame() %>% 
+    mutate_if(is.numeric, ~ round(.,3)) %>% na.omit()) ; rm(par.M2)
+
+str(table.M2)
+
+table.M2$Parameter <- as.factor(table.M2$Parameter)
+
+#rename
+levels(table.M2$Parameter) <- c("Intercept", 
+                                "Circulation [Regional]",
+                                "Errors [yes]",
+                                "Spider expert [yes]",
+                                "Figures [yes]",
+                                "Other experts [yes]",
+                                "Sensationalism [yes]",
+                                "Search Term [Brown recluse]",
+                                "Search Term [Latrodectus]",
+                                "Search Term [Spider bite]", 
+                                "Event type [Bite]",
+                                "Event type [Deadly bite]")
+
+#sort
+table.M2$Parameter <- factor(table.M2$Parameter, rev(c("Intercept",
+                                                       "Circulation [Regional]",
+                                                       "Event type [Bite]",
+                                                       "Event type [Deadly bite]",
+                                                       "Figures [yes]",
+                                                       "Sensationalism [yes]",
+                                                       "Errors [yes]",
+                                                       "Spider expert [yes]",
+                                                       "Other experts [yes]",
+                                                       "Search Term [Spider bite]",
+                                                       "Search Term [Latrodectus]",
+                                                       "Search Term [Brown recluse]")))
+
+sign.M2 <- ifelse(table.M2$p > 0.05, "", " *") #Significance
+
+(plot2b <- table.M2 %>%
+    ggplot2::ggplot(aes(x = Beta, y = Parameter)) +
+    geom_vline(lty = 3, size = 0.5, col = "grey50", xintercept = 0) +
+    geom_errorbar(aes(xmin = CI_low, xmax = CI_high), col = "grey10", width = 0.1)+
+    geom_point(col = "grey10", fill = "grey20", size = 3, pch = 21) +
+    geom_text(col = "grey10", label = paste0(round(table.M2$Beta, 3), sign.M2, sep = "  "), 
+              vjust = - 1, size = 3) +
+    labs(x = expression(paste("Estimated beta" %+-% "95% Confidence interval")),
+         y = NULL))
+
+############################### 
+##### Analysis iNaturalist ####
+###############################
+
+# Calculating trend -------------------------------------------------------
+
+db_trend <- db[db$data_source == "iNaturalist",]
+
+#db_trend <- db_trend[db_trend$Notes != "behind paywall",]
+
+db_trend <- droplevels(db_trend)
+
+
+#Here, for each news, we model the temporal trend before and after the publication for each search term
+
+for(i in 1 : nlevels(db_trend$event_id)) {
+  
+  db_i <- db_trend[db_trend$event_id == levels(db_trend$event_id)[i],] #subdataset for the i news
+  
+  db_i <- droplevels(db_i)
+  
+  #model trend before and after
+  model <- glm(hits ~ period, data = db_i, family = "poisson")
+
+  #store data for delta
+  db_delta_i <- data.frame(ID             = levels(db$event_id)[i],
+                           trend          = model$coefficients[2],
+                           country        = levels(db_i$country),
+                           circulation    = levels(db_i$Circulation),
+                           TypeEvent      = levels(db_i$TypeEvent),
+                           sensationalism = levels(as.factor(db_i$Sensationalism)),
+                           error          = levels(as.factor(db_i$Errors)),
+                           expert_spider  = levels(as.factor(db_i$Expert_arachnologist)),
+                           other_experts  = levels(as.factor(db_i$Other_Experts)),
+                           Figures        = levels(as.factor(db_i$Figures)),
+                           Genus          = levels(as.factor(db_i$Genus)),
+                           Family         = levels(as.factor(db_i$Family)),
+                           Newspaper      = levels(as.factor(db_i$Newspaper)),
+                           m              = levels(as.factor(db_i$m)),
+                           yr             = levels(as.factor(db_i$yr)))
+  
+  if(i > 1)
+    db_delta_iNat <- rbind(db_delta_iNat, db_delta_i)
+  else
+    db_delta_iNat <- db_delta_i
+  
+}
+
+db_delta_iNat <- db_delta_iNat %>%  mutate_if(is.character, as.factor)
+
+# Plot wiki ---------------------------------------
+
+(plot3a <- db_delta_iNat %>% ggplot(aes(x = trend)) +
+    xlim(-1.5, 1.5)+
+    geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
+    
+    labs(x = "Intercept change for search volume in iNaturalist",
+         y = "Density of values by search term")+
+    
+    ggdist::stat_slab(
+      # data = ~ .x,
+      # aes(fill_ramp = stat(abs(x))),
+      color = "black",
+      fill = "black",
+      size = .2,
+      alpha = 0.5,
+      expand = FALSE,
+      trim = TRUE,
+      height = 2
+    ) + 
+    
+    annotate("segment", x = 1, xend = 1.3, y = 1.9, yend = 1.9,
+             color = "grey10",
+             arrow = arrow(ends = "last", 
+                           angle = 15, 
+                           length = unit(.2,"cm")))+
+    
+    annotate("text", x = 0.6, y = 2, hjust = 0, vjust = 0.5,
+             size = 3,
+             color = "grey10",
+             label = "Greater search intensity\nafter the news")+
+    
+    annotate("segment", x = -1, xend = -1.3, y = 1.9, yend = 1.9,
+             color = "grey10",
+             arrow = arrow(ends = "last", 
+                           angle = 15, 
+                           length = unit(.2,"cm")))+
+    
+    annotate("text", x = -0.6, y = 2, hjust =1, vjust = 0.5,
+             size = 3,
+             color = "grey10",
+             label = "Greater search intensity\nbefore the news")+
+    theme(legend.position = "none")
+)
+
+# Modelling ---------------------------------------------------------------
+
+# Creating temporal random factor
+db_delta_iNat$yr_m <- paste(db_delta_iNat$yr, db_delta_iNat$m, sep ="_")
+table(db_delta_iNat$yr_m)
+
+# Random factor newspaper
+table(db_delta_iNat$Newspaper)
+
+# Setting baselines
+db_delta_iNat <- within(db_delta_iNat, Regional <- relevel(circulation, ref = "Regional"))
+db_delta_iNat <- within(db_delta_iNat, TypeEvent <- relevel(TypeEvent, ref = "Encounter"))
+
+#data exploration: balancing factor levels
+table(db_delta_iNat$circulation) 
+table(db_delta_iNat$TypeEvent) 
+table(db_delta_iNat$sensationalism) 
+table(db_delta_iNat$Figures)
+table(db_delta_iNat$error) 
+table(db_delta_iNat$expert_spider) 
+table(db_delta_iNat$other_experts) 
+
+# Model
+m3 <- lme4::lmer(trend ~ circulation + country +
+                   TypeEvent + Figures + error + 
+                   sensationalism + expert_spider + other_experts +
+                   (1 | yr_m), data = db_delta_iNat)
+
+performance::check_model(m3)
+
+(par.M3 <- parameters::parameters(m3))
+
+#plot of the model
+(table.M3 <- par.M3 %>% dplyr::select(Parameter,
+                                      Beta = Coefficient,
+                                      SE,
+                                      CI_low,
+                                      CI_high,
+                                      t,
+                                      p) %>% 
+    data.frame() %>% 
+    mutate_if(is.numeric, ~ round(.,3)) %>% na.omit()) ; rm(par.M3)
+
+str(table.M3)
+
+table.M3$Parameter <- as.factor(table.M3$Parameter)
+
+#rename
+levels(table.M3$Parameter) <- c("Intercept", 
+                                "Circulation [Regional]",
+                                "Country [USA]",
+                                "Errors [yes]",
+                                "Spider expert [yes]",
+                                "Figures [yes]",
+                                "Other experts [yes]",
+                                "Sensationalism [yes]",
+                                "Event type [Bite]",
+                                "Event type [Deadly bite]")
+
+#sort
+table.M3Parameter <- factor(table.M3$Parameter, rev(c("Intercept",
+                                                       "Circulation [Regional]",
+                                                       "Country [USA]",
+                                                       "Event type [Bite]",
+                                                       "Event type [Deadly bite]",
+                                                       "Figures [yes]",
+                                                       "Sensationalism [yes]",
+                                                       "Errors [yes]",
+                                                       "Spider expert [yes]",
+                                                       "Other experts [yes]")))
+
+sign.M3 <- ifelse(table.M3$p > 0.05, "", " *") #Significance
+
+(plot3b <- table.M3 %>%
+    ggplot2::ggplot(aes(x = Beta, y = Parameter)) +
+    geom_vline(lty = 3, size = 0.5, col = "grey50", xintercept = 0) +
+    geom_errorbar(aes(xmin = CI_low, xmax = CI_high), col = "grey10", width = 0.1)+
+    geom_point(col = "grey10", fill = "grey20", size = 3, pch = 21) +
+    geom_text(col = "grey10", label = paste0(round(table.M3$Beta, 3), sign.M3, sep = "  "), 
+              vjust = - 1, size = 3) +
+    labs(x = expression(paste("Estimated beta" %+-% "95% Confidence interval")),
+         y = NULL))
+
+# Saving figures ----------------------------------------------------------
+
+pdf(file = "Figures/Figure_1_GTREND.pdf", width = 12, height = 5)
+ggpubr::ggarrange(plot1a, plot1b, ncol = 2, nrow = 1, labels = c("A", "B"))
+dev.off()
+
+pdf(file = "Figures/Figure_2_WIKI.pdf", width = 12, height = 5)
+ggpubr::ggarrange(plot2a, plot2b, ncol = 2, nrow = 1, labels = c("A", "B"))
+dev.off()
+
+pdf(file = "Figures/Figure_3_iNAT.pdf", width = 12, height = 5)
+ggpubr::ggarrange(plot3a, plot3b, ncol = 2, nrow = 1, labels = c("A", "B"))
 dev.off()
 
 
-# 
-# 
-# 
-# 
-# #extract subdataset for different search terms
-# db_spider     <- db[db$short_term == levels(db$short_term)[1], ]
-# db_spiderbite <- db[db$short_term == levels(db$short_term)[2], ]
-# 
-# #régression linéaire
-# ##pour l'ensemble des données, indépendemment des événements
-# lm_allterm_allpub = lm(gtrends_hits_clean$hits~gtrends_hits_clean$jour, data = gtrends_hits_clean)
-# summary_lm_allterm_allpub <- summary(lm_allterm_allpub)
-# r_squared_all <- summary_lm_allterm_allpub$r.squared
-# cat("Overall R-squared:", overall_r_squared_all, "\n")
-# p_value_all <- anova(lm_allterm_allpub)$Pr[1]
-# cat("Overall p-value:", overall_p_value_all, "\n")
-# 
-# ##en tenant compte de chaque événement
-# model <- lm(hits~jour + as.factor(n_publication), data = gtrends_hits_clean)
-# summary_model <- summary(model)
-# overall_r_squared_perpub <- summary_model$r.squared
-# cat("Overall R-squared:", overall_r_squared_perpub, "\n")
-# overall_p_value_perpub <- anova(model)$Pr[1]
-# cat("Overall p-value:", overall_p_value_perpub, "\n")
-# 
-# #
-# ##spider
-# spider_data <- subset(gtrends_hits_clean, short_term == "spider")
-# hist(spider_data$hits)
-# 
-# ggplot(spider_data, aes(x = jour, y = hits)) +
-#   geom_point() +
-#   geom_smooth(method = "lm", se = TRUE) +  # Ajouter des tendances linéaires
-#   labs(title = "Spider - scatterplot with lm",
-#        x = "Day",
-#        y = "Number of Hits for 'spider' ") +
-#   theme_minimal()
-# 
-# lm_spider = lm(hits~jour, data = spider_data)
-# summary(lm_spider)$r.squared
-# coef(summary(lm_spider))[2, 4]
-# 
-# ##spider bite
-# spiderbite_data <- subset(gtrends_hits_clean, short_term == "spider bite")
-# hist(spiderbite_data$hits)
-# boxplot(spiderbite_data$hits~spiderbite_data$jour)
-# 
-# spiderbite_data$period = factor(spiderbite_data$period, levels = c("before", "after"))
-# boxplot(spiderbite_data$hits~spiderbite_data$period)
-# summary(aov(spiderbite_data$hits~spiderbite_data$period))
-# 
-# 
-# ggplot(spiderbite_data, aes(x = jour, y = hits)) +
-#   geom_point() +
-#   geom_smooth(method = "loess", se = TRUE) +  # Ajouter des tendances linéaires
-#   labs(title = "Spider bite - Scatterplot with Loess smoother",
-#        x = "Day",
-#        y = "Number de hits for 'spider bite' ") +
-#   theme_minimal()
-# 
-# ##look for normality of residuals
-# ###comme il y a des 0 dans les valeurs de hits, utilisons la fonction log1p pour transformer les données
-# lm_spiderbite = lm(hits~jour, data = spiderbite_data)
-# hist(resid(lm_spiderbite))
-# summary_lm_spiderbite = summary(lm_spiderbite)
-# summary(lm_spiderbite)$r.squared
-# coef(summary(lm_spiderbite))[2, 4]
-# 
-# ##en tenant compte de chaque événement
-# model_spiderbite <- lm(hits~jour + as.factor(n_publication), data = spiderbite_data)
-# summary_model_spiderbite <- summary(model_spiderbite)
-# overall_r_squared <- summary_model_spiderbite$r.squared
-# cat("Overall R-squared:", overall_r_squared, "\n")
-# overall_p_value <- anova(model_spiderbite)$Pr[1]
-# cat("Overall p-value:", overall_p_value, "\n")
-# 
-# #LOESS curve
-# ggplot(spiderbite_data, aes(x = jour, y = hits, group = n_publication, color = as.factor(n_publication))) +
-#   geom_point() +
-#   geom_smooth(method = "loess", se = TRUE) +  # Ajouter des tendances linéaires
-#   labs(title = "Spider bite - Scatterplot with Loess smoother",
-#        x = "Day",
-#        y = "Number de hits for 'spider bite' ") +
-#   theme_minimal()
-# 
-# #par portée du quotidien (national, regional, international)
-# ggplot(spiderbite_data, aes(x = jour, y = hits, group = Circulation, color = as.factor(Circulation))) +
-#   geom_point() +
-#   geom_smooth(method = "lm", se = TRUE) +  # Ajouter des tendances linéaires
-#   labs(title = "Spider bite - Scatterplot with lm",
-#        x = "Day",
-#        y = "Number de hits for 'spider bite' ") +
-#   theme_minimal()
-# 
-# lm_model_circulation = lm(hits~jour + as.factor(Circulation), data = spiderbite_data)
-# summary(lm_model_circulation)
-# 
-# #frequence
-# boxplot(frequence$frequence)
-# spider_freq <- frequence[frequence$search_term == "spider", ]
-# spiderbite_freq <- frequence[frequence$search_term == "spider_bite", ]
-# 
-# ###Effectuer un test exact de binôme
-# binom_spider <- binom.test(sum(spiderbite_freq$frequence), length(spiderbite_freq$frequence), p = 0.5, alternative = "two.sided")
-# print(binom_spider)
-# 
-# ###calculer les erreurs standard
-# # Calculer la fréquence observée de succès (1)
-# frequence_obs <- sum(spider_freq$frequence) / length(spider_freq$frequence)
-# 
-# # Calculer la taille de l'échantillon
-# taille_echantillon <- length(spiderbite_freq$frequence)
-# 
-# # Calculer l'erreur-type de la fréquence
-# erreur_type_frequence <- sqrt(frequence_obs * (1 - frequence_obs) / taille_echantillon)
-# 
-# # Afficher l'erreur-type de la fréquence
-# print(erreur_type_frequence)
-# 
-# ##représentation graphique
-# # Créer un tableau de fréquence
-# df <- data.frame(
-#   search_term = (c("spider", "spider bite")),
-#   Frequence = c(mean(spider_freq$frequence), mean(spiderbite_freq$frequence)),
-#   SE = c(0.069, 0.063))
-# 
-# ggplot(df, aes(x = search_term, y = Frequence)) +
-#   geom_errorbar(aes(ymin = Frequence - SE, ymax = Frequence + SE), width = 0, color = "black", size = 0.5) +
-#   geom_point(stat = "identity", fill = "skyblue", color = "black", size= 5)+
-#   labs(title = "Frequency (mean +/- se) of higher GTrends after media story publication",
-#        x = "Search term",
-#        y = "Frequency") +
-#   theme_minimal()+
-#   ylim(0.4,0.8)
