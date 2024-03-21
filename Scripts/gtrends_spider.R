@@ -99,15 +99,17 @@ for(i in 1 : nlevels(db_trend$event_id)) {
   
   delta  <- c()
   coef   <- c()
+  p      <- c()
   
   #model trend before and after
-  for(j in 1:nlevels(db_i$search_term)) {
+  for(j in 1 : nlevels(db_i$search_term)) {
     
     db_i_j <- db_i[db_i$search_term == levels(db_i$search_term)[j], ] #extract subdataset for the search term j
 
     model <- glm(cbind(hits,rep(100,nrow(db_i_j))) ~ period, data = db_i_j, family = "binomial")
 
     delta <- append(delta, model$coefficients[2])
+    p     <- append(p, summary(model)$coefficients[2,4])
     
   }
   
@@ -115,6 +117,7 @@ for(i in 1 : nlevels(db_trend$event_id)) {
   db_delta_i <- data.frame(ID             = rep(levels(db$event_id)[i],j),
                            term           = levels(db_i$search_term),
                            trend          = delta,
+                           trend.p        = p,
                            country        = rep(levels(db_i$country),j),
                            circulation    = rep(levels(db_i$Circulation),j),
                            TypeEvent      = rep(levels(db_i$TypeEvent),j),
@@ -138,6 +141,20 @@ for(i in 1 : nlevels(db_trend$event_id)) {
 
 db_delta_Gtrend <- db_delta_Gtrend %>%  mutate_if(is.character, as.factor)
 
+db_delta_Gtrend$trend.p %>% round(3)
+
+## % of significant comparison
+sum(ifelse(db_delta_Gtrend$trend.p < 0.05, 
+           ifelse(db_delta_Gtrend$trend > 0, 1, 0), 0))/nrow(db_delta_Gtrend) # 10% are significantly higher
+
+db_delta_Gtrend$trend_sign <- ifelse(db_delta_Gtrend$trend.p < 0.05, 
+       ifelse(db_delta_Gtrend$trend > 0, "Sign_plus", "Sign_minus"), "Non_sig") %>% as.factor()
+
+db_delta_Gtrend$trend_alpha<- ifelse(db_delta_Gtrend$trend.p < 0.05, 
+                                     1, 0.5)
+
+
+
 # Plot GTrend ---------------------------------------
 
 db_delta_Gtrend$term <- factor(db_delta_Gtrend$term, rev(c("spider", "spider bite", "brown recluse", "black widow")))
@@ -155,8 +172,8 @@ my.colors <- c("black","darkorange", "blue", "purple")
        y = "Density of values by search term")+
   
   ggdist::stat_slab(
-    # data = ~ .x,
-    # aes(fill_ramp = stat(abs(x))),
+    data = ~ .x,
+    aes(fill_discrete = stat(abs(x))),
     #color = "gray15",
     size = .2,
     alpha = 0.5,
@@ -164,6 +181,7 @@ my.colors <- c("black","darkorange", "blue", "purple")
     trim = TRUE,
     height = 2
   ) + 
+  
   
   annotate("segment", x = 1, xend = 1.3, y = 4.7, yend = 4.7,
            color = "grey10",
@@ -224,8 +242,22 @@ m1 <- lme4::lmer(trend ~ term + country + circulation +
            (1 | yr_m) + (1 | Newspaper), data = db_delta_Gtrend) #db_delta_Gtrend[-c(2,39),]
 
 performance::check_model(m1)
-
 (par.M1 <- parameters::parameters(m1))
+
+m1 <- lme4::lmer(trend ~ term + country + circulation + 
+                   TypeEvent + Figures + error + 
+                   sensationalism + expert_spider + other_experts +
+                   (1 | yr_m) + (1 | Newspaper), data = db_delta_Gtrend) #db_delta_Gtrend[-c(2,39),]
+
+m1 <- lme4::lmer(trend ~ term + country + circulation + 
+                   TypeEvent + Figures + error + 
+                   sensationalism + expert_spider + other_experts +
+                   (1 | yr_m) + (1 | Newspaper), data = db_delta_Gtrend) #db_delta_Gtrend[-c(2,39),]
+
+m1 <- lme4::lmer(trend ~ term + circulation + 
+                   TypeEvent + Figures + error + 
+                   sensationalism + expert_spider + other_experts +
+                   (1 | yr_m) + (1 | Newspaper), data = db_delta_Gtrend[db_delta_Gtrend$country == "Canada",]) #db_delta_Gtrend[-c(2,39),]
 
 #plot of the model
 (table.M1 <- par.M1 %>% dplyr::select(Parameter,
@@ -284,6 +316,41 @@ sign.M1 <- ifelse(table.M1$p > 0.05, "", " *") #Significance
     labs(x = expression(paste("Estimated beta" %+-% "95% Confidence interval")),
          y = NULL))
 
+
+
+m1_2 <- lme4::lmer(trend ~ country + circulation + 
+                   TypeEvent + Figures + error + 
+                   sensationalism + expert_spider + other_experts +
+                   (1 | yr_m), data = db_delta_Gtrend[db_delta_Gtrend$term == "spider",])
+
+performance::check_model(m1_2)
+(par.M1_2 <- parameters::parameters(m1_2))
+
+m1_3 <- lme4::lmer(trend ~ country + circulation + 
+                     TypeEvent + Figures + error + 
+                     sensationalism + expert_spider + other_experts +
+                     (1 | yr_m), data = db_delta_Gtrend[db_delta_Gtrend$term == "spider bite",])
+
+performance::check_model(m1_3)
+(par.M1_3 <- parameters::parameters(m1_3))
+
+m1_4 <- lme4::lmer(trend ~ country + circulation + 
+                     TypeEvent + Figures + error + 
+                     sensationalism + expert_spider + other_experts +
+                     (1 | yr_m), data = db_delta_Gtrend[db_delta_Gtrend$term == "black widow",])
+
+performance::check_model(m1_4)
+(par.M1_4 <- parameters::parameters(m1_4))
+
+
+m1_5 <- lme4::lmer(trend ~ country + circulation + 
+                     TypeEvent + Figures + error + 
+                     sensationalism + expert_spider + other_experts +
+                     (1 | yr_m), data = db_delta_Gtrend[db_delta_Gtrend$term == "brown recluse",])
+
+performance::check_model(m1_5)
+(par.M1_5 <- parameters::parameters(m1_5))
+
 ############################### 
 ##### Analysis Wikipedia ###### 
 ###############################
@@ -317,13 +384,16 @@ for(i in 1 : nlevels(db_trend$event_id)) {
     model <- MASS::glm.nb(hits ~ period, data = db_i_j)
     
     delta <- append(delta, model$coefficients[2])
+    #p     <- append(delta, summary(model)$coefficients[2,4])
+    
     
   }
   
   #store data for delta
   db_delta_i <- data.frame(ID             = rep(levels(db$event_id)[i],j),
                            term           = levels(db_i$search_term),
-                           trend          = delta,
+                           #trend          = delta,
+                           trend.p.       = p,
                            country        = rep(levels(db_i$country),j),
                            circulation    = rep(levels(db_i$Circulation),j),
                            TypeEvent      = rep(levels(db_i$TypeEvent),j),
@@ -641,7 +711,7 @@ levels(table.M3$Parameter) <- c("Intercept",
                                 "Event type [Deadly bite]")
 
 #sort
-table.M3Parameter <- factor(table.M3$Parameter, rev(c("Intercept",
+table.M3$Parameter <- factor(table.M3$Parameter, rev(c("Intercept",
                                                        "Circulation [Regional]",
                                                        "Country [USA]",
                                                        "Event type [Bite]",
@@ -677,5 +747,4 @@ dev.off()
 pdf(file = "Figures/Figure_3_iNAT.pdf", width = 12, height = 5)
 ggpubr::ggarrange(plot3a, plot3b, ncol = 2, nrow = 1, labels = c("A", "B"))
 dev.off()
-
-
+#End
