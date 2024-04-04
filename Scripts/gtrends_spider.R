@@ -129,8 +129,8 @@ for(i in 1 : nlevels(db_trend$event_id)) {
                            Genus          = rep(levels(as.factor(db_i$Genus)),j),
                            Family         = rep(levels(as.factor(db_i$Family)),j),
                            Newspaper      = rep(levels(as.factor(db_i$Newspaper)),j),
-                           m              = rep(levels(as.factor(db_i$m)),j),
-                           yr             = rep(levels(as.factor(db_i$yr)),j))
+                           m              = rep(levels(as.factor(db_i$m)),j) |> as.numeric(),
+                           yr             = rep(levels(as.factor(db_i$yr)),j) |> as.numeric())
   
   if(i > 1)
     db_delta_Gtrend <- rbind(db_delta_Gtrend, db_delta_i)
@@ -140,8 +140,6 @@ for(i in 1 : nlevels(db_trend$event_id)) {
 }
 
 db_delta_Gtrend <- db_delta_Gtrend %>%  mutate_if(is.character, as.factor)
-
-db_delta_Gtrend$trend.p %>% round(3)
 
 ## % of significant comparison
 sum(ifelse(db_delta_Gtrend$trend.p < 0.05, 
@@ -153,7 +151,8 @@ db_delta_Gtrend$trend_sign <- ifelse(db_delta_Gtrend$trend.p < 0.05,
 db_delta_Gtrend$trend_alpha<- ifelse(db_delta_Gtrend$trend.p < 0.05, 
                                      1, 0.5)
 
-
+db_delta_Gtrend$trend.01 <- ifelse(db_delta_Gtrend$trend > 0, 
+                                     1, 0)
 
 # Plot GTrend ---------------------------------------
 
@@ -182,7 +181,6 @@ my.colors <- c("black","darkorange", "blue", "purple")
     height = 2
   ) + 
   
-  
   annotate("segment", x = 1, xend = 1.3, y = 4.7, yend = 4.7,
            color = "grey10",
            arrow = arrow(ends = "last", 
@@ -204,6 +202,7 @@ my.colors <- c("black","darkorange", "blue", "purple")
            size = 3,
            color = "grey10",
            label = "Greater search intensity\nbefore the news")+
+    
   theme(legend.position = "none")
 )
 
@@ -235,31 +234,43 @@ table(db_delta_Gtrend$error)
 table(db_delta_Gtrend$expert_spider) 
 table(db_delta_Gtrend$other_experts) 
 
-# Model
+# Model tests
+my.formula <- as.formula("trend ~ country + circulation +  TypeEvent + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m)")
+
+Gtrend_models <- list(
+  "spider"          = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider",]),
+  "black widow"     = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "black widow",]),
+  "brown recluse"   = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "brown recluse",]),
+  "spider bite"     = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider bite",])
+)
+
+modelsummary::modelsummary(Gtrend_models, statistic = "{std.error} ({p.value})")
+modelsummary::modelplot(Gtrend_models)
+
+my.formula.01 <- as.formula("trend.01 ~ country + circulation +  TypeEvent + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m)")
+
+Gtrend_models.01 <- list(
+  "spider"          = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider",], family = "binomial"),
+  "black widow"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "black widow",], family = "binomial"),
+  "brown recluse"   = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "brown recluse",], family = "binomial"),
+  "spider bite"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider bite",], family = "binomial")
+)
+
+modelsummary::modelsummary(Gtrend_models.01, statistic = "{std.error} ({p.value})")
+
+modelsummary::modelplot(Gtrend_models.01)
+
+
+#plot of the model
+
 m1 <- lme4::lmer(trend ~ term + country + circulation + 
-           TypeEvent + Figures + error + 
-           sensationalism + expert_spider + other_experts +
-           (1 | yr_m) + (1 | Newspaper), data = db_delta_Gtrend) #db_delta_Gtrend[-c(2,39),]
+                   TypeEvent + Figures + error + 
+                   sensationalism + expert_spider + other_experts +
+                   (1 | yr_m) + (1 | Newspaper), data = db_delta_Gtrend) #db_delta_Gtrend[-c(2,39),]
 
 performance::check_model(m1)
 (par.M1 <- parameters::parameters(m1))
 
-m1 <- lme4::lmer(trend ~ term + country + circulation + 
-                   TypeEvent + Figures + error + 
-                   sensationalism + expert_spider + other_experts +
-                   (1 | yr_m) + (1 | Newspaper), data = db_delta_Gtrend) #db_delta_Gtrend[-c(2,39),]
-
-m1 <- lme4::lmer(trend ~ term + country + circulation + 
-                   TypeEvent + Figures + error + 
-                   sensationalism + expert_spider + other_experts +
-                   (1 | yr_m) + (1 | Newspaper), data = db_delta_Gtrend) #db_delta_Gtrend[-c(2,39),]
-
-m1 <- lme4::lmer(trend ~ term + circulation + 
-                   TypeEvent + Figures + error + 
-                   sensationalism + expert_spider + other_experts +
-                   (1 | yr_m) + (1 | Newspaper), data = db_delta_Gtrend[db_delta_Gtrend$country == "Canada",]) #db_delta_Gtrend[-c(2,39),]
-
-#plot of the model
 (table.M1 <- par.M1 %>% dplyr::select(Parameter,
                                      Beta = Coefficient,
                                      SE,
@@ -316,41 +327,6 @@ sign.M1 <- ifelse(table.M1$p > 0.05, "", " *") #Significance
     labs(x = expression(paste("Estimated beta" %+-% "95% Confidence interval")),
          y = NULL))
 
-
-
-m1_2 <- lme4::lmer(trend ~ country + circulation + 
-                   TypeEvent + Figures + error + 
-                   sensationalism + expert_spider + other_experts +
-                   (1 | yr_m), data = db_delta_Gtrend[db_delta_Gtrend$term == "spider",])
-
-performance::check_model(m1_2)
-(par.M1_2 <- parameters::parameters(m1_2))
-
-m1_3 <- lme4::lmer(trend ~ country + circulation + 
-                     TypeEvent + Figures + error + 
-                     sensationalism + expert_spider + other_experts +
-                     (1 | yr_m), data = db_delta_Gtrend[db_delta_Gtrend$term == "spider bite",])
-
-performance::check_model(m1_3)
-(par.M1_3 <- parameters::parameters(m1_3))
-
-m1_4 <- lme4::lmer(trend ~ country + circulation + 
-                     TypeEvent + Figures + error + 
-                     sensationalism + expert_spider + other_experts +
-                     (1 | yr_m), data = db_delta_Gtrend[db_delta_Gtrend$term == "black widow",])
-
-performance::check_model(m1_4)
-(par.M1_4 <- parameters::parameters(m1_4))
-
-
-m1_5 <- lme4::lmer(trend ~ country + circulation + 
-                     TypeEvent + Figures + error + 
-                     sensationalism + expert_spider + other_experts +
-                     (1 | yr_m), data = db_delta_Gtrend[db_delta_Gtrend$term == "brown recluse",])
-
-performance::check_model(m1_5)
-(par.M1_5 <- parameters::parameters(m1_5))
-
 ############################### 
 ##### Analysis Wikipedia ###### 
 ###############################
@@ -365,6 +341,24 @@ db_trend <- droplevels(db_trend)
 
 levels(db_trend$search_term) <- c("brown recluse", "Latrodectus","spider","spider bite")
 
+
+# volume...
+
+# db_volume <- db_trend 
+# 
+# db_volume$yr_m <- paste(db_volume$yr, db_volume$m, sep ="_") %>% as.factor()
+# 
+# db_volume <- db_volume %>% 
+#   dplyr::group_by(yr_m, search_term) %>% 
+#   dplyr::summarise(sum_wiki = sum(hits, rm.na = TRUE),
+#                    count = n())
+# 
+# db_volume %>% ggplot2::ggplot(aes(x = sum_wiki, y = count, fill = search_term, col = search_term)) +
+#     #facet_wrap(vars(search_term)) +
+#     geom_point() +
+#     geom_smooth(method = "lm")
+
+
 #Here, for each news, we model the temporal trend before and after the publication for each search term
 
 for(i in 1 : nlevels(db_trend$event_id)) {
@@ -375,6 +369,7 @@ for(i in 1 : nlevels(db_trend$event_id)) {
   
   delta  <- c()
   coef   <- c()
+  p      <- c()
   
   #model trend before and after
   for(j in 1:nlevels(db_i$search_term)) {
@@ -384,15 +379,14 @@ for(i in 1 : nlevels(db_trend$event_id)) {
     model <- MASS::glm.nb(hits ~ period, data = db_i_j)
     
     delta <- append(delta, model$coefficients[2])
-    #p     <- append(delta, summary(model)$coefficients[2,4])
-    
+    p     <- append(p, summary(model)$coefficients[2,4])
     
   }
   
   #store data for delta
   db_delta_i <- data.frame(ID             = rep(levels(db$event_id)[i],j),
                            term           = levels(db_i$search_term),
-                           #trend          = delta,
+                           trend          = delta,
                            trend.p.       = p,
                            country        = rep(levels(db_i$country),j),
                            circulation    = rep(levels(db_i$Circulation),j),
@@ -405,8 +399,8 @@ for(i in 1 : nlevels(db_trend$event_id)) {
                            Genus          = rep(levels(as.factor(db_i$Genus)),j),
                            Family         = rep(levels(as.factor(db_i$Family)),j),
                            Newspaper      = rep(levels(as.factor(db_i$Newspaper)),j),
-                           m              = rep(levels(as.factor(db_i$m)),j),
-                           yr             = rep(levels(as.factor(db_i$yr)),j))
+                           m              = rep(levels(as.factor(db_i$m)),j) |> as.numeric(),
+                           yr             = rep(levels(as.factor(db_i$yr)),j) |> as.numeric())
   
   if(i > 1)
     db_delta_wiki <- rbind(db_delta_wiki, db_delta_i)
@@ -416,6 +410,20 @@ for(i in 1 : nlevels(db_trend$event_id)) {
 }
 
 db_delta_wiki <- db_delta_wiki %>%  mutate_if(is.character, as.factor)
+
+## % of significant comparison
+sum(ifelse(db_delta_wiki$trend.p < 0.05, 
+           ifelse(db_delta_wiki$trend > 0, 1, 0), 0))/nrow(db_delta_wiki) # 10% are significantly higher
+
+db_delta_wiki$trend_sign <- ifelse(db_delta_wiki$trend.p < 0.05, 
+                                     ifelse(db_delta_wiki$trend > 0, "Sign_plus", "Sign_minus"), "Non_sig") %>% as.factor()
+
+db_delta_wiki$trend_alpha<- ifelse(db_delta_wiki$trend.p < 0.05, 
+                                     1, 0.5)
+
+db_delta_wiki$trend.01 <- ifelse(db_delta_wiki$trend > 0, 
+                                   1, 0)
+
 
 # Plot wiki ---------------------------------------
 
@@ -490,6 +498,35 @@ table(db_delta_wiki$Figures)
 table(db_delta_wiki$error) 
 table(db_delta_wiki$expert_spider) 
 table(db_delta_wiki$other_experts) 
+
+# Test models
+my.formula <- as.formula("trend ~ circulation + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m) + (1 | Newspaper)")
+
+Wiki_models <- list(
+  "spider"          = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "spider",]),
+  "Latrodectus"     = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "Latrodectus",]),
+  "brown recluse"   = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "brown recluse",]),
+  "spider bite"     = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "spider bite",])
+)
+
+
+modelsummary::modelsummary(Wiki_models, statistic = "{std.error} ({p.value})")
+modelsummary::modelplot(Wiki_models)
+
+my.formula.01 <- as.formula("trend.01 ~ circulation + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m) + (1 | Newspaper)")
+
+Wiki_models.01 <- list(
+  "spider"          = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "spider",], family = "binomial"),
+  "Latrodectus"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "Latrodectus",], family = "binomial"),
+  "brown recluse"   = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "brown recluse",], family = "binomial"),
+  "spider bite"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "spider bite",], family = "binomial")
+)
+
+modelsummary::modelsummary(Wiki_models.01, statistic = "{std.error} ({p.value})")
+modelsummary::modelplot(Wiki_models.01)
+
+
+# Test models month
 
 # Model
 m2 <- lme4::lmer(trend ~ term + circulation + 
