@@ -7,7 +7,7 @@
 ## ------------------------------------------------------------------------
 
 # Analysis performed with R (v. R 4.3.0) and R studio (v. 2023.03.1+446)
-# Authors: Stefano Mammola & Andre-Philippe Drapeau Picard
+# Authors: Stefano Mammola
 
 ##############
 # R packages #
@@ -82,7 +82,6 @@ db <- within(db, period <- relevel(period, ref = "before"))
 levels(db$Circulation) <- c("(Inter)national", "(Inter)national", "Regional")
 
 #### Volume data ####
-
 vol <- read.csv("Data/volume_search.csv" , header=TRUE, as.is = FALSE, sep = "\t") |>
   dplyr::select(c(-1))
 
@@ -161,11 +160,9 @@ sum(ifelse(db_delta_Gtrend$trend.p < 0.05,
 db_delta_Gtrend$trend_sign <- ifelse(db_delta_Gtrend$trend.p < 0.05, 
        ifelse(db_delta_Gtrend$trend > 0, "Sign_plus", "Sign_minus"), "Non_sig") %>% as.factor()
 
-db_delta_Gtrend$trend_alpha<- ifelse(db_delta_Gtrend$trend.p < 0.05, 
-                                     1, 0.5)
+db_delta_Gtrend$trend_alpha<- ifelse(db_delta_Gtrend$trend.p < 0.05, 1, 0.5)
 
-db_delta_Gtrend$trend.01 <- ifelse(db_delta_Gtrend$trend > 0, 
-                                     1, 0)
+db_delta_Gtrend$trend.01 <- ifelse(db_delta_Gtrend$trend > 0, 1, 0)
 
 # Plot GTrend ---------------------------------------
 
@@ -802,7 +799,7 @@ pdf(file = "Figures/Figure_3_iNAT.pdf", width = 12, height = 5)
 ggpubr::ggarrange(plot3a, plot3b, ncol = 2, nrow = 1, labels = c("A", "B"))
 dev.off()
 
-pdf(file = "Figures/Figure_3_vol.pdf", width = 12, height = 5)
+pdf(file = "Figures/Figure_4_volume.pdf", width = 12, height = 5)
 plot4
 dev.off()
 
