@@ -18,6 +18,9 @@ pacman::p_load("dplyr",
                "parameters",
                "performance",
                "ggdist",
+               "MASS",
+               "modelsummary",
+               "readxl",
                "see",
                "tidyverse",
                "tidylog")
@@ -41,6 +44,7 @@ theme_update(
 
 # Import data -------------------------------------------------------------
 
+#### Main data ####
 db <- read.csv("Data/spiders_data_metadata_masterfile.csv" , header=TRUE, as.is = FALSE) |>
   dplyr::select(c(-1))
 
@@ -76,6 +80,15 @@ db <- within(db, period <- relevel(period, ref = "before"))
 
 # check circulation
 levels(db$Circulation) <- c("(Inter)national", "(Inter)national", "Regional")
+
+#### Volume data ####
+
+vol <- read.csv("Data/volume_search.csv" , header=TRUE, as.is = FALSE, sep = "\t") |>
+  dplyr::select(c(-1))
+
+str(vol)
+
+colnames(vol)[5] <- "n"
 
 #######################
 # Analysis for Gtrend #
@@ -235,31 +248,30 @@ table(db_delta_Gtrend$expert_spider)
 table(db_delta_Gtrend$other_experts) 
 
 # Model tests
-my.formula <- as.formula("trend ~ country + circulation +  TypeEvent + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m)")
-
-Gtrend_models <- list(
-  "spider"          = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider",]),
-  "black widow"     = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "black widow",]),
-  "brown recluse"   = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "brown recluse",]),
-  "spider bite"     = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider bite",])
-)
-
-modelsummary::modelsummary(Gtrend_models, statistic = "{std.error} ({p.value})")
-modelsummary::modelplot(Gtrend_models)
-
-my.formula.01 <- as.formula("trend.01 ~ country + circulation +  TypeEvent + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m)")
-
-Gtrend_models.01 <- list(
-  "spider"          = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider",], family = "binomial"),
-  "black widow"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "black widow",], family = "binomial"),
-  "brown recluse"   = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "brown recluse",], family = "binomial"),
-  "spider bite"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider bite",], family = "binomial")
-)
-
-modelsummary::modelsummary(Gtrend_models.01, statistic = "{std.error} ({p.value})")
-
-modelsummary::modelplot(Gtrend_models.01)
-
+# my.formula <- as.formula("trend ~ country + circulation +  TypeEvent + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m)")
+# 
+# Gtrend_models <- list(
+#   "spider"          = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider",]),
+#   "black widow"     = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "black widow",]),
+#   "brown recluse"   = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "brown recluse",]),
+#   "spider bite"     = lme4::lmer(my.formula, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider bite",])
+# )
+# 
+# modelsummary::modelsummary(Gtrend_models, statistic = "{std.error} ({p.value})")
+# modelsummary::modelplot(Gtrend_models)
+# 
+# my.formula.01 <- as.formula("trend.01 ~ country + circulation +  TypeEvent + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m)")
+# 
+# Gtrend_models.01 <- list(
+#   "spider"          = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider",], family = "binomial"),
+#   "black widow"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "black widow",], family = "binomial"),
+#   "brown recluse"   = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "brown recluse",], family = "binomial"),
+#   "spider bite"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_Gtrend[db_delta_Gtrend$term == "spider bite",], family = "binomial")
+# )
+# 
+# modelsummary::modelsummary(Gtrend_models.01, statistic = "{std.error} ({p.value})")
+# 
+# modelsummary::modelplot(Gtrend_models.01)
 
 #plot of the model
 
@@ -322,8 +334,7 @@ sign.M1 <- ifelse(table.M1$p > 0.05, "", " *") #Significance
     geom_vline(lty = 3, size = 0.5, col = "grey50", xintercept = 0) +
     geom_errorbar(aes(xmin = CI_low, xmax = CI_high), col = "grey10", width = 0.1)+
     geom_point(col = "grey10", fill = "grey20", size = 3, pch = 21) +
-    geom_text(col = "grey10", label = paste0(round(table.M1$Beta, 3), sign.M1, sep = "  "), 
-              vjust = - 1, size = 3) +
+    geom_text(col = "grey10", label = sign.M1, vjust = 0, size = 5) +
     labs(x = expression(paste("Estimated beta" %+-% "95% Confidence interval")),
          y = NULL))
 
@@ -340,24 +351,6 @@ db_trend <- db_trend[db_trend$Notes != "behind paywall",]
 db_trend <- droplevels(db_trend)
 
 levels(db_trend$search_term) <- c("brown recluse", "Latrodectus","spider","spider bite")
-
-
-# volume...
-
-# db_volume <- db_trend 
-# 
-# db_volume$yr_m <- paste(db_volume$yr, db_volume$m, sep ="_") %>% as.factor()
-# 
-# db_volume <- db_volume %>% 
-#   dplyr::group_by(yr_m, search_term) %>% 
-#   dplyr::summarise(sum_wiki = sum(hits, rm.na = TRUE),
-#                    count = n())
-# 
-# db_volume %>% ggplot2::ggplot(aes(x = sum_wiki, y = count, fill = search_term, col = search_term)) +
-#     #facet_wrap(vars(search_term)) +
-#     geom_point() +
-#     geom_smooth(method = "lm")
-
 
 #Here, for each news, we model the temporal trend before and after the publication for each search term
 
@@ -423,7 +416,6 @@ db_delta_wiki$trend_alpha<- ifelse(db_delta_wiki$trend.p < 0.05,
 
 db_delta_wiki$trend.01 <- ifelse(db_delta_wiki$trend > 0, 
                                    1, 0)
-
 
 # Plot wiki ---------------------------------------
 
@@ -499,34 +491,31 @@ table(db_delta_wiki$error)
 table(db_delta_wiki$expert_spider) 
 table(db_delta_wiki$other_experts) 
 
-# Test models
-my.formula <- as.formula("trend ~ circulation + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m) + (1 | Newspaper)")
-
-Wiki_models <- list(
-  "spider"          = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "spider",]),
-  "Latrodectus"     = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "Latrodectus",]),
-  "brown recluse"   = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "brown recluse",]),
-  "spider bite"     = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "spider bite",])
-)
-
-
-modelsummary::modelsummary(Wiki_models, statistic = "{std.error} ({p.value})")
-modelsummary::modelplot(Wiki_models)
-
-my.formula.01 <- as.formula("trend.01 ~ circulation + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m) + (1 | Newspaper)")
-
-Wiki_models.01 <- list(
-  "spider"          = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "spider",], family = "binomial"),
-  "Latrodectus"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "Latrodectus",], family = "binomial"),
-  "brown recluse"   = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "brown recluse",], family = "binomial"),
-  "spider bite"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "spider bite",], family = "binomial")
-)
-
-modelsummary::modelsummary(Wiki_models.01, statistic = "{std.error} ({p.value})")
-modelsummary::modelplot(Wiki_models.01)
-
-
-# Test models month
+# # Test models
+# my.formula <- as.formula("trend ~ circulation + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m) + (1 | Newspaper)")
+# 
+# Wiki_models <- list(
+#   "spider"          = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "spider",]),
+#   "Latrodectus"     = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "Latrodectus",]),
+#   "brown recluse"   = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "brown recluse",]),
+#   "spider bite"     = lme4::lmer(my.formula, data = db_delta_wiki[db_delta_wiki$term == "spider bite",])
+# )
+# 
+# 
+# modelsummary::modelsummary(Wiki_models, statistic = "{std.error} ({p.value})")
+# modelsummary::modelplot(Wiki_models)
+# 
+# my.formula.01 <- as.formula("trend.01 ~ circulation + Figures + error +  sensationalism + expert_spider + other_experts + (1 | yr_m) + (1 | Newspaper)")
+# 
+# Wiki_models.01 <- list(
+#   "spider"          = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "spider",], family = "binomial"),
+#   "Latrodectus"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "Latrodectus",], family = "binomial"),
+#   "brown recluse"   = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "brown recluse",], family = "binomial"),
+#   "spider bite"     = glmmTMB::glmmTMB(my.formula.01, data = db_delta_wiki[db_delta_wiki$term == "spider bite",], family = "binomial")
+# )
+# 
+# modelsummary::modelsummary(Wiki_models.01, statistic = "{std.error} ({p.value})")
+# modelsummary::modelplot(Wiki_models.01)
 
 # Model
 m2 <- lme4::lmer(trend ~ term + circulation + 
@@ -588,8 +577,7 @@ sign.M2 <- ifelse(table.M2$p > 0.05, "", " *") #Significance
     geom_vline(lty = 3, size = 0.5, col = "grey50", xintercept = 0) +
     geom_errorbar(aes(xmin = CI_low, xmax = CI_high), col = "grey10", width = 0.1)+
     geom_point(col = "grey10", fill = "grey20", size = 3, pch = 21) +
-    geom_text(col = "grey10", label = paste0(round(table.M2$Beta, 3), sign.M2, sep = "  "), 
-              vjust = - 1, size = 3) +
+    geom_text(col = "grey10", label = sign.M2, vjust = 0, size = 5) +
     labs(x = expression(paste("Estimated beta" %+-% "95% Confidence interval")),
          y = NULL))
 
@@ -600,11 +588,7 @@ sign.M2 <- ifelse(table.M2$p > 0.05, "", " *") #Significance
 # Calculating trend -------------------------------------------------------
 
 db_trend <- db[db$data_source == "iNaturalist",]
-
-#db_trend <- db_trend[db_trend$Notes != "behind paywall",]
-
 db_trend <- droplevels(db_trend)
-
 
 #Here, for each news, we model the temporal trend before and after the publication for each search term
 
@@ -766,10 +750,43 @@ sign.M3 <- ifelse(table.M3$p > 0.05, "", " *") #Significance
     geom_vline(lty = 3, size = 0.5, col = "grey50", xintercept = 0) +
     geom_errorbar(aes(xmin = CI_low, xmax = CI_high), col = "grey10", width = 0.1)+
     geom_point(col = "grey10", fill = "grey20", size = 3, pch = 21) +
-    geom_text(col = "grey10", label = paste0(round(table.M3$Beta, 3), sign.M3, sep = "  "), 
-              vjust = - 1, size = 3) +
+    geom_text(col = "grey10", label = sign.M3, vjust = 0, size = 5) +
     labs(x = expression(paste("Estimated beta" %+-% "95% Confidence interval")),
          y = NULL))
+
+# Analysis VOLUME ---------------------------------------------------------
+
+### Model
+
+levels(vol$term) <- c("Araneae", "brown recluse", "Latrodectus", "spider", "spider bite")
+vol <- within(vol, term <- relevel(term, ref = "spider"))
+
+# iNat
+m4 <- glm(hits ~ n, data = vol[vol$data_source == "iNaturalist",], family = "poisson")
+performance::check_overdispersion(m4)
+
+m5 <- MASS::glm.nb(hits ~ n, data = vol[vol$data_source == "iNaturalist",])
+
+#wiki
+m6 <- glm(hits ~ n * term, data = vol[vol$data_source == "Wikipedia",], family = "poisson")
+performance::check_overdispersion(m6)
+
+m7 <- MASS::glm.nb(hits ~ n + term, data = vol[vol$data_source == "Wikipedia",])
+
+### plot
+
+vol <- within(vol, term <- relevel(term, ref = "Araneae"))
+vol$term <- factor(vol$term, c("Araneae", "spider", "spider bite", "brown recluse", "Latrodectus"))
+
+(plot4 <- vol %>% ggplot2::ggplot(aes(x = n, y = hits, fill = term, col = term)) +
+        facet_wrap(vars(data_source), scales = "free") +
+        geom_point() +
+        geom_smooth(method = "glm.nb")+
+        scale_color_manual("Search term", values = c("grey40",my.colors))+
+        scale_fill_manual("Search term", values = c("grey40",my.colors))+
+        labs(x = "Number of published news (monthly)", y = "Number of hits")
+  )
+
 
 # Saving figures ----------------------------------------------------------
 
@@ -784,4 +801,48 @@ dev.off()
 pdf(file = "Figures/Figure_3_iNAT.pdf", width = 12, height = 5)
 ggpubr::ggarrange(plot3a, plot3b, ncol = 2, nrow = 1, labels = c("A", "B"))
 dev.off()
-#End
+
+pdf(file = "Figures/Figure_3_vol.pdf", width = 12, height = 5)
+plot4
+dev.off()
+
+# Saving model outputs ----------------------------------------------------
+
+models <- list(
+  "Gtrend"      = m1,
+  "Wikipedia"   = m2,
+  "iNaturalist" = m3
+)
+
+cm <- c("(Intercept)" = "Intercept", 
+        "circulationRegional" = "Circulation [Regional]",
+        "countryUSA" = "Country [USA]",
+        "error1" = "Errors [yes]",
+        "expert_spider1" = "Spider expert [yes]",
+        "Figures1" = "Figures [yes]",
+        "other_experts1" = "Other experts [yes]",
+        "sensationalism1" = "Sensationalism [yes]",
+        "termbrown recluse" = "Search Term [Brown recluse]",
+        "termblack widow" = "Search Term [Black widow]",
+        "termLatrodectus" = "Search Term [Latrodectus]",
+        "termspider bite" = "Search Term [Spider bite]", 
+        "TypeEventBite"= "Event type [Bite]",
+        "TypeEventDeadly bite" = "Event type [Deadly bite]")
+
+modelsummary::modelsummary(models, gof_omit = ".*",
+             estimate = "{estimate} [{conf.low}, {conf.high}]",
+             statistic = NULL, gof_map = NA, coef_map = cm, output = "Tables/Table_S1_models_trend.docx")
+
+models_volume <- list("iNaturalist" = m5, "Wikipedia" = m7)
+
+cm2 <- c("(Intercept)" = "Intercept", 
+        "n" = "Number of news",
+        "termspider bite" = "Search Term [Spider bite]", 
+        "termbrown recluse" = "Search Term [Brown recluse]",
+        "termLatrodectus" = "Search Term [Latrodectus]"
+        )
+
+modelsummary::modelsummary(models_volume, gof_omit = ".*",
+                           estimate = "{estimate} [{conf.low}, {conf.high}]",
+                           statistic = NULL, gof_map = NA, coef_map = cm2, output = "Tables/Table_S2_models_volume.docx")
+#end
