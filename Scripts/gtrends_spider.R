@@ -1,5 +1,5 @@
 ## ------------------------------------------------------------------------
-## 'PAPER TITLE'
+## 'Does the publication of spider-related news stories trigger online searches about spiders?'
 ## ------------------------------------------------------------------------
 
 ## ------------------------------------------------------------------------
@@ -37,6 +37,8 @@ theme_update(
   axis.text  = element_text(size = 10, colour = "grey10"),
   axis.title = element_text(size = 12, colour = "grey10")
 )
+
+my.colors <- c("blue", "purple", "darkorange", "black")
 
 ####################
 # Data preparation #
@@ -198,7 +200,7 @@ db_trend <- droplevels(db_trend)
 
 levels(db_trend$search_term) <- c(rep("black widow",2),rep("brown recluse",2),rep("spider",2),rep("spider bite",2))
 
-#Here, for each news, we model the temporal trend before and after the publication for each search term
+# Here, for each news, we model the temporal trend before and after the publication for each search term
 
 for(i in 1 : nlevels(db_trend$event_id)) {
   
@@ -261,13 +263,27 @@ db_delta_Gtrend$trend_alpha<- ifelse(db_delta_Gtrend$trend.p < 0.05, 1, 0.5)
 
 db_delta_Gtrend$trend.01 <- ifelse(db_delta_Gtrend$trend > 0, 1, 0)
 
+## Figure 1a
+db_trend$search_term <- factor(db_trend$search_term, c("spider", "spider bite", "brown recluse", "black widow"))
+
+(plot1a <- db_trend %>% 
+    ggplot(aes(x = day, y = hits, fill = search_term, color = search_term)) +
+    geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
+    geom_smooth(method='gam', formula = y ~ s(x), se = TRUE,
+                method.args = list(family = poisson)) +
+    scale_x_continuous(breaks = -7:7, labels = as.character(-7:7))+
+    scale_color_manual("", values = my.colors)+
+    scale_fill_manual("", values = my.colors)+
+    labs(x = "Day",
+         y = "Hits")+
+    theme(legend.position = "top")
+)
+
 # Plot GTrend ---------------------------------------
 
-db_delta_Gtrend$term <- factor(db_delta_Gtrend$term, rev(c("spider", "spider bite", "brown recluse", "black widow")))
+db_delta_Gtrend$term <- factor(db_delta_Gtrend$term, c("spider", "spider bite", "brown recluse", "black widow"))
 
-my.colors <- c("black","darkorange", "blue", "purple")
-
-(plot1a <- db_delta_Gtrend %>% ggplot(aes(x = trend, y = term, fill = term, color = term)) +
+(plot1b <- db_delta_Gtrend %>% ggplot(aes(x = trend, y = term, fill = term, color = term)) +
   xlim(-1.5, 1.5)+
   geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
   
@@ -423,7 +439,7 @@ table.M1$Parameter <- factor(table.M1$Parameter, rev(c("Intercept",
   
 sign.M1 <- ifelse(table.M1$p > 0.05, "", " *") #Significance
 
-(plot1b <- table.M1 %>%
+(plot1c <- table.M1 %>%
     ggplot2::ggplot(aes(x = Beta, y = Parameter)) +
     geom_vline(lty = 3, size = 0.5, col = "grey50", xintercept = 0) +
     geom_errorbar(aes(xmin = CI_low, xmax = CI_high), col = "grey10", width = 0.1)+
@@ -508,16 +524,28 @@ db_delta_wiki$trend_sign <- ifelse(db_delta_wiki$trend.p < 0.05,
 db_delta_wiki$trend_alpha<- ifelse(db_delta_wiki$trend.p < 0.05, 
                                      1, 0.5)
 
-db_delta_wiki$trend.01 <- ifelse(db_delta_wiki$trend > 0, 
-                                   1, 0)
+db_delta_wiki$trend.01 <- ifelse(db_delta_wiki$trend > 0, 1, 0)
+
+## plot2a
+db_trend$search_term <- factor(db_trend$search_term, c("spider", "spider bite", "brown recluse", "Latrodectus"))
+
+(plot2a <- db_trend %>% 
+    ggplot(aes(x = day, y = hits, fill = search_term, color = search_term)) +
+    geom_vline(aes(xintercept=0), color = "grey10", linetype = "dashed", linewidth = .3)+
+    geom_smooth(method='gam', formula = y ~ s(x), se = TRUE) +
+    scale_x_continuous(breaks = -7:7, labels = as.character(-7:7))+
+    scale_color_manual("", values = my.colors)+
+    scale_fill_manual("", values = my.colors)+
+    labs(x = "Day",
+         y = "Hits")+
+    theme(legend.position = "top")
+)
 
 # Plot wiki ---------------------------------------
 
-db_delta_wiki$term <- factor(db_delta_wiki$term, rev(c("spider", "spider bite", "brown recluse", "Latrodectus")))
+db_delta_wiki$term <- factor(db_delta_wiki$term, c("spider", "spider bite", "brown recluse", "Latrodectus"))
 
-my.colors <- c("black","darkorange", "blue", "purple")
-
-(plot2a <- db_delta_wiki %>% ggplot(aes(x = trend, y = term, fill = term, color = term)) +
+(plot2b <- db_delta_wiki %>% ggplot(aes(x = trend, y = term, fill = term, color = term)) +
     xlim(-1.5, 1.5)+
     geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
     
@@ -666,7 +694,7 @@ table.M2$Parameter <- factor(table.M2$Parameter, rev(c("Intercept",
 
 sign.M2 <- ifelse(table.M2$p > 0.05, "", " *") #Significance
 
-(plot2b <- table.M2 %>%
+(plot2c <- table.M2 %>%
     ggplot2::ggplot(aes(x = Beta, y = Parameter)) +
     geom_vline(lty = 3, size = 0.5, col = "grey50", xintercept = 0) +
     geom_errorbar(aes(xmin = CI_low, xmax = CI_high), col = "grey10", width = 0.1)+
@@ -721,9 +749,24 @@ for(i in 1 : nlevels(db_trend$event_id)) {
 
 db_delta_iNat <- db_delta_iNat %>%  mutate_if(is.character, as.factor)
 
-# Plot wiki ---------------------------------------
+##
+(plot3a <- db_trend %>%
+    ggplot(aes(x = day, y = hits)) +
+    geom_vline(aes(xintercept=0), color = "grey10", linetype = "dashed", linewidth = .3)+
 
-(plot3a <- db_delta_iNat %>% ggplot(aes(x = trend)) +
+    geom_smooth(method = 'gam', formula = y ~ s(x), se = TRUE, color="grey10", fill = "grey10") +
+    scale_x_continuous(breaks = -7:7, labels = as.character(-7:7))+
+    scale_color_manual("", values = my.colors)+
+    scale_fill_manual("", values = my.colors)+
+
+    labs(x = "Day",
+         y = "Hits")
+)
+
+
+# Plot INat ---------------------------------------
+
+(plot3b <- db_delta_iNat %>% ggplot(aes(x = trend)) +
     xlim(-1.5, 1.5)+
     geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
     
@@ -839,7 +882,7 @@ table.M3$Parameter <- factor(table.M3$Parameter, rev(c("Intercept",
 
 sign.M3 <- ifelse(table.M3$p > 0.05, "", " *") #Significance
 
-(plot3b <- table.M3 %>%
+(plot3c <- table.M3 %>%
     ggplot2::ggplot(aes(x = Beta, y = Parameter)) +
     geom_vline(lty = 3, size = 0.5, col = "grey50", xintercept = 0) +
     geom_errorbar(aes(xmin = CI_low, xmax = CI_high), col = "grey10", width = 0.1)+
@@ -867,17 +910,23 @@ performance::check_overdispersion(m6)
 
 m7 <- MASS::glm.nb(hits ~ n + term, data = vol[vol$data_source == "Wikipedia",])
 
+summary(m7)
 
-# proportion models
-vol_wiki <- vol[vol$data_source == "Wikipedia",] |> na.omit()
-
-m8 <- MASS::glm.nb(hits ~ n + term + Sensationalism + Errors + Expert_doctor + Expert_arachnologist, data = vol_wiki)
-
-performance::check_collinearity(m8)
-
-summary(m8)
-
-m9 <- MASS::glm.nb(hits ~ n + term + Sensationalism + Errors + Expert_doctor + Expert_arachnologist + Bite + Deadly_bite, data = vol_wiki)
+# # proportion models
+# vol_wiki <- vol[vol$data_source == "Wikipedia",] |> na.omit()
+# 
+# levels(vol_wiki$term) <- c("spider", "Araneae", "brown recluse", "Latrodectus", "spider bite")
+# vol_wiki <- within(vol_wiki, term <- relevel(term, ref = "spider"))
+# 
+# m8 <- MASS::glm.nb(hits ~ n + term + Sensationalism + Errors + Expert_doctor + Expert_arachnologist, data = vol_wiki)
+# 
+# performance::check_collinearity(m8)
+# 
+# summary(m8)
+# 
+# m9 <- MASS::glm.nb(hits ~ n + term + Sensationalism + Errors + Expert_doctor + Expert_arachnologist + Bite + Deadly_bite, data = vol_wiki)
+# 
+# summary(m9)
 
 ### plot
 
@@ -893,19 +942,18 @@ vol$term <- factor(vol$term, c("Araneae", "spider", "spider bite", "brown reclus
         labs(x = "Number of published news (monthly)", y = "Number of hits")
   )
 
-
 # Saving figures ----------------------------------------------------------
 
-pdf(file = "Figures/Figure_1_GTREND.pdf", width = 12, height = 5)
-ggpubr::ggarrange(plot1a, plot1b, ncol = 2, nrow = 1, labels = c("A", "B"))
+pdf(file = "Figures/Figure_1_GTREND.pdf", width = 18, height = 5)
+ggpubr::ggarrange(plot1a, plot1b, plot1c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
 dev.off()
 
-pdf(file = "Figures/Figure_2_WIKI.pdf", width = 12, height = 5)
-ggpubr::ggarrange(plot2a, plot2b, ncol = 2, nrow = 1, labels = c("A", "B"))
+pdf(file = "Figures/Figure_2_WIKI.pdf", width = 18, height = 5)
+ggpubr::ggarrange(plot2a, plot2b, plot2c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
 dev.off()
 
-pdf(file = "Figures/Figure_3_iNAT.pdf", width = 12, height = 5)
-ggpubr::ggarrange(plot3a, plot3b, ncol = 2, nrow = 1, labels = c("A", "B"))
+pdf(file = "Figures/Figure_3_iNAT.pdf", width = 18, height = 5)
+ggpubr::ggarrange(plot3a, plot3b, plot3c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
 dev.off()
 
 pdf(file = "Figures/Figure_4_volume.pdf", width = 12, height = 5)
