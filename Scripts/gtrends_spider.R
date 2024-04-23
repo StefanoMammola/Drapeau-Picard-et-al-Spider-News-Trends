@@ -275,8 +275,9 @@ db_trend$search_term <- factor(db_trend$search_term, c("spider", "spider bite", 
 (plot1a <- db_trend %>% 
     ggplot(aes(x = day, y = hits, fill = search_term, color = search_term)) +
     geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
-    geom_smooth(method='gam', formula = y ~ s(x), se = TRUE,
-                method.args = list(family = poisson)) +
+    geom_smooth(method = 'loess', se = TRUE) +
+    # geom_smooth(method='gam', formula = y ~ s(x), se = TRUE,
+    #             method.args = list(family = poisson)) +
     scale_x_continuous(breaks = -7:7, labels = as.character(-7:7))+
     scale_color_manual("", values = my.colors)+
     scale_fill_manual("", values = my.colors)+
@@ -538,7 +539,8 @@ db_trend$search_term <- factor(db_trend$search_term, c("spider", "spider bite", 
 (plot2a <- db_trend %>% 
     ggplot(aes(x = day, y = hits, fill = search_term, color = search_term)) +
     geom_vline(aes(xintercept=0), color = "grey10", linetype = "dashed", linewidth = .3)+
-    geom_smooth(method='gam', formula = y ~ s(x), se = TRUE) +
+    geom_smooth(method = 'loess', se = TRUE) +
+    #geom_smooth(method='gam', formula = y ~ s(x), se = TRUE) +
     scale_x_continuous(breaks = -7:7, labels = as.character(-7:7))+
     scale_color_manual("", values = my.colors)+
     scale_fill_manual("", values = my.colors)+
@@ -759,8 +761,8 @@ db_delta_iNat <- db_delta_iNat %>%  mutate_if(is.character, as.factor)
 (plot3a <- db_trend %>%
     ggplot(aes(x = day, y = hits)) +
     geom_vline(aes(xintercept=0), color = "grey10", linetype = "dashed", linewidth = .3)+
-
-    geom_smooth(method = 'gam', formula = y ~ s(x), se = TRUE, color="grey10", fill = "grey10") +
+    geom_smooth(method = 'loess', se = TRUE, color="grey10", fill = "grey10") +
+    #geom_smooth(method = 'gam', formula = y ~ s(x), se = TRUE, color="grey10", fill = "grey10") +
     scale_x_continuous(breaks = -7:7, labels = as.character(-7:7))+
     scale_color_manual("", values = my.colors)+
     scale_fill_manual("", values = my.colors)+
@@ -768,7 +770,6 @@ db_delta_iNat <- db_delta_iNat %>%  mutate_if(is.character, as.factor)
     labs(x = "Day",
          y = "Hits")
 )
-
 
 # Plot INat ---------------------------------------
 
@@ -939,7 +940,7 @@ summary(m7)
 vol <- within(vol, term <- relevel(term, ref = "Araneae"))
 vol$term <- factor(vol$term, c("Araneae", "spider", "spider bite", "brown recluse", "Latrodectus"))
 
-(plot4 <- vol %>% ggplot2::ggplot(aes(x = n, y = hits, fill = term, col = term)) +
+(plot4 <- vol %>% na.omit() %>% ggplot2::ggplot(aes(x = n, y = hits, fill = term, col = term)) +
         facet_wrap(vars(data_source), scales = "free") +
         geom_point() +
         geom_smooth(method = "glm.nb")+
