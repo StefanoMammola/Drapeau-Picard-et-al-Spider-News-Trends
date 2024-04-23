@@ -52,6 +52,9 @@ db <- read.csv("Data/spiders_data_metadata_masterfile.csv" , header=TRUE, as.is 
 
 str(db)
 
+# How many news?
+unique(db$country)
+
 #combine bites and deadly bites
 db <- db %>% mutate(TypeEvent = Bite + Death)
 db$TypeEvent <- as.factor(db$TypeEvent) ; levels(db$TypeEvent) <- c("Encounter","Bite","Deadly bite")
@@ -199,6 +202,9 @@ db_trend <- db[db$data_source == "GoogleTrends",]
 db_trend <- droplevels(db_trend)
 
 levels(db_trend$search_term) <- c(rep("black widow",2),rep("brown recluse",2),rep("spider",2),rep("spider bite",2))
+
+# Sample size
+unique(db_trend$event_id)
 
 # Here, for each news, we model the temporal trend before and after the publication for each search term
 
