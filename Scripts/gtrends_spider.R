@@ -1,5 +1,5 @@
 ## ------------------------------------------------------------------------
-## 'Does the publication of spider-related news stories trigger online searches about spiders?'
+## 'The influence of spider news on online information-seeking'
 ## ------------------------------------------------------------------------
 
 ## ------------------------------------------------------------------------
@@ -47,7 +47,8 @@ my.colors <- c("blue", "purple", "darkorange", "black")
 # Import data -------------------------------------------------------------
 
 #### Main data ####
-db <- read.csv("Data/spiders_data_metadata_masterfile.csv" , header=TRUE, as.is = FALSE) |>
+db <- read.csv("Data/spiders_data_metadata_masterfile.csv" , 
+               header = TRUE, as.is = FALSE) |>
   dplyr::select(c(-1))
 
 str(db)
@@ -57,7 +58,7 @@ unique(db$country)
 
 #combine bites and deadly bites
 db <- db %>% mutate(TypeEvent = Bite + Death)
-db$TypeEvent <- as.factor(db$TypeEvent) ; levels(db$TypeEvent) <- c("Encounter","Bite","Deadly bite")
+db$TypeEvent <- as.factor(db$TypeEvent) ; levels(db$TypeEvent) <- c("Encounter","Bite","Bite")
 
 #combine experts
 db <- db %>% mutate(Other_Experts = Expert_doctor + Expert_others)
@@ -256,7 +257,7 @@ for(i in 1 : nlevels(db_trend$event_id)) {
   
 }
 
-db_delta_Gtrend <- db_delta_Gtrend %>%  mutate_if(is.character, as.factor)
+db_delta_Gtrend <- db_delta_Gtrend %>% mutate_if(is.character, as.factor)
 
 ## % of significant comparison
 sum(ifelse(db_delta_Gtrend$trend.p < 0.05, 
@@ -279,10 +280,11 @@ db_trend$search_term <- factor(db_trend$search_term, c("spider", "spider bite", 
     # geom_smooth(method='gam', formula = y ~ s(x), se = TRUE,
     #             method.args = list(family = poisson)) +
     scale_x_continuous(breaks = -7:7, labels = as.character(-7:7))+
+    scale_y_continuous(breaks = c(65,70,75,80,85), labels = c("  65","  70","  75","  80","  85"))+
     scale_color_manual("", values = my.colors)+
     scale_fill_manual("", values = my.colors)+
-    labs(x = "Day",
-         y = "Hits")+
+    labs(x = NULL,
+         y = "Hits in Google Trend")+
     theme(legend.position = "top")
 )
 
@@ -291,13 +293,13 @@ db_trend$search_term <- factor(db_trend$search_term, c("spider", "spider bite", 
 db_delta_Gtrend$term <- factor(db_delta_Gtrend$term, c("spider", "spider bite", "brown recluse", "black widow"))
 
 (plot1b <- db_delta_Gtrend %>% ggplot(aes(x = trend, y = term, fill = term, color = term)) +
-  xlim(-1.5, 1.5)+
-  geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
+    xlim(-1.5, 1.5)+
+     geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
   
   scale_color_manual("Search term", values = my.colors)+
   scale_fill_manual("Search term", values = my.colors)+
   
-  labs(x = "Intercept change for search volume in gTrend",
+  labs(x = NULL,
        y = "Density of values by search term")+
   
   ggdist::stat_slab(
@@ -317,7 +319,7 @@ db_delta_Gtrend$term <- factor(db_delta_Gtrend$term, c("spider", "spider bite", 
                          angle = 15, 
                          length = unit(.2,"cm")))+
   
-  annotate("text", x = 0.6, y = 5, hjust = 0, vjust = 0.5,
+  annotate("text", x = 0.5, y = 5, hjust = 0, vjust = 0.5,
            size = 3,
            color = "grey10",
            label = "Greater search intensity\nafter the news")+
@@ -328,7 +330,7 @@ db_delta_Gtrend$term <- factor(db_delta_Gtrend$term, c("spider", "spider bite", 
                          angle = 15, 
                          length = unit(.2,"cm")))+
   
-  annotate("text", x = -0.6, y = 5, hjust =1, vjust = 0.5,
+  annotate("text", x = -0.5, y = 5, hjust =1, vjust = 0.5,
            size = 3,
            color = "grey10",
            label = "Greater search intensity\nbefore the news")+
@@ -426,15 +428,13 @@ levels(table.M1$Parameter) <- c("Intercept",
                                 "Search Term [Black widow]",
                                 "Search Term [Brown recluse]",
                                 "Search Term [Spider bite]", 
-                                "Event type [Bite]",
-                                "Event type [Deadly bite]")
+                                "Event type [Bite]")
   
 #sort
 table.M1$Parameter <- factor(table.M1$Parameter, rev(c("Intercept", 
                                                        "Country [USA]",
                                                        "Circulation [Regional]",
                                                        "Event type [Bite]",
-                                                       "Event type [Deadly bite]",
                                                        "Figures [yes]",
                                                        "Sensationalism [yes]",
                                                        "Errors [yes]",
@@ -452,7 +452,7 @@ sign.M1 <- ifelse(table.M1$p > 0.05, "", " *") #Significance
     geom_errorbar(aes(xmin = CI_low, xmax = CI_high), col = "grey10", width = 0.1)+
     geom_point(col = "grey10", fill = "grey20", size = 3, pch = 21) +
     geom_text(col = "grey10", label = sign.M1, vjust = 0, size = 5) +
-    labs(x = expression(paste("Estimated beta" %+-% "95% Confidence interval")),
+    labs(x = NULL,
          y = NULL))
 
 ############################### 
@@ -544,8 +544,8 @@ db_trend$search_term <- factor(db_trend$search_term, c("spider", "spider bite", 
     scale_x_continuous(breaks = -7:7, labels = as.character(-7:7))+
     scale_color_manual("", values = my.colors)+
     scale_fill_manual("", values = my.colors)+
-    labs(x = "Day",
-         y = "Hits")+
+    labs(x = NULL,
+         y = "Hits in Wikipedia")+
     theme(legend.position = "top")
 )
 
@@ -560,7 +560,7 @@ db_delta_wiki$term <- factor(db_delta_wiki$term, c("spider", "spider bite", "bro
     scale_color_manual("Search term", values = my.colors)+
     scale_fill_manual("Search term", values = my.colors)+
     
-    labs(x = "Intercept change for search volume in Wikipedia",
+    labs(x = NULL,
          y = "Density of values by search term")+
     
     ggdist::stat_slab(
@@ -574,27 +574,27 @@ db_delta_wiki$term <- factor(db_delta_wiki$term, c("spider", "spider bite", "bro
       height = 2
     ) + 
     
-    annotate("segment", x = 1, xend = 1.3, y = 4.7, yend = 4.7,
-             color = "grey10",
-             arrow = arrow(ends = "last", 
-                           angle = 15, 
-                           length = unit(.2,"cm")))+
-    
-    annotate("text", x = 0.6, y = 5, hjust = 0, vjust = 0.5,
-             size = 3,
-             color = "grey10",
-             label = "Greater search intensity\nafter the news")+
-    
-    annotate("segment", x = -1, xend = -1.3, y = 4.7, yend = 4.7,
-             color = "grey10",
-             arrow = arrow(ends = "last", 
-                           angle = 15, 
-                           length = unit(.2,"cm")))+
-    
-    annotate("text", x = -0.6, y = 5, hjust =1, vjust = 0.5,
-             size = 3,
-             color = "grey10",
-             label = "Greater search intensity\nbefore the news")+
+    # annotate("segment", x = 1, xend = 1.3, y = 4.7, yend = 4.7,
+    #          color = "grey10",
+    #          arrow = arrow(ends = "last", 
+    #                        angle = 15, 
+    #                        length = unit(.2,"cm")))+
+    # 
+    # annotate("text", x = 0.6, y = 5, hjust = 0, vjust = 0.5,
+    #          size = 3,
+    #          color = "grey10",
+    #          label = "Greater search intensity\nafter the news")+
+    # 
+    # annotate("segment", x = -1, xend = -1.3, y = 4.7, yend = 4.7,
+    #          color = "grey10",
+    #          arrow = arrow(ends = "last", 
+    #                        angle = 15, 
+    #                        length = unit(.2,"cm")))+
+    # 
+    # annotate("text", x = -0.6, y = 5, hjust =1, vjust = 0.5,
+    #          size = 3,
+    #          color = "grey10",
+    #          label = "Greater search intensity\nbefore the news")+
     theme(legend.position = "none")
 )
 
@@ -683,14 +683,12 @@ levels(table.M2$Parameter) <- c("Intercept",
                                 "Search Term [Brown recluse]",
                                 "Search Term [Latrodectus]",
                                 "Search Term [Spider bite]", 
-                                "Event type [Bite]",
-                                "Event type [Deadly bite]")
+                                "Event type [Bite]")
 
 #sort
 table.M2$Parameter <- factor(table.M2$Parameter, rev(c("Intercept",
                                                        "Circulation [Regional]",
                                                        "Event type [Bite]",
-                                                       "Event type [Deadly bite]",
                                                        "Figures [yes]",
                                                        "Sensationalism [yes]",
                                                        "Errors [yes]",
@@ -708,7 +706,7 @@ sign.M2 <- ifelse(table.M2$p > 0.05, "", " *") #Significance
     geom_errorbar(aes(xmin = CI_low, xmax = CI_high), col = "grey10", width = 0.1)+
     geom_point(col = "grey10", fill = "grey20", size = 3, pch = 21) +
     geom_text(col = "grey10", label = sign.M2, vjust = 0, size = 5) +
-    labs(x = expression(paste("Estimated beta" %+-% "95% Confidence interval")),
+    labs(x = NULL,
          y = NULL))
 
 ############################### 
@@ -761,14 +759,16 @@ db_delta_iNat <- db_delta_iNat %>%  mutate_if(is.character, as.factor)
 (plot3a <- db_trend %>%
     ggplot(aes(x = day, y = hits)) +
     geom_vline(aes(xintercept=0), color = "grey10", linetype = "dashed", linewidth = .3)+
-    geom_smooth(method = 'loess', se = TRUE, color="grey10", fill = "grey10") +
+    geom_smooth(method = 'loess', se = TRUE, color=my.colors[1], fill =my.colors[1]) +
     #geom_smooth(method = 'gam', formula = y ~ s(x), se = TRUE, color="grey10", fill = "grey10") +
     scale_x_continuous(breaks = -7:7, labels = as.character(-7:7))+
+    scale_y_continuous(breaks = c(130,140,150,160), labels = c(" 130"," 140"," 150"," 160"))+
+    
     scale_color_manual("", values = my.colors)+
     scale_fill_manual("", values = my.colors)+
 
     labs(x = "Day",
-         y = "Hits")
+         y = "Hits in iNaturalist")
 )
 
 # Plot INat ---------------------------------------
@@ -783,36 +783,39 @@ db_delta_iNat <- db_delta_iNat %>%  mutate_if(is.character, as.factor)
     ggdist::stat_slab(
       # data = ~ .x,
       # aes(fill_ramp = stat(abs(x))),
-      color = "black",
-      fill = "black",
+      color = my.colors[1],
+      fill = my.colors[1],
       size = .2,
       alpha = 0.5,
       expand = FALSE,
       trim = TRUE,
       height = 2
     ) + 
+   
+   scale_y_continuous(breaks = c(0), labels = c("        Araneae"))+
+   
     
-    annotate("segment", x = 1, xend = 1.3, y = 1.9, yend = 1.9,
-             color = "grey10",
-             arrow = arrow(ends = "last", 
-                           angle = 15, 
-                           length = unit(.2,"cm")))+
-    
-    annotate("text", x = 0.6, y = 2, hjust = 0, vjust = 0.5,
-             size = 3,
-             color = "grey10",
-             label = "Greater search intensity\nafter the news")+
-    
-    annotate("segment", x = -1, xend = -1.3, y = 1.9, yend = 1.9,
-             color = "grey10",
-             arrow = arrow(ends = "last", 
-                           angle = 15, 
-                           length = unit(.2,"cm")))+
-    
-    annotate("text", x = -0.6, y = 2, hjust =1, vjust = 0.5,
-             size = 3,
-             color = "grey10",
-             label = "Greater search intensity\nbefore the news")+
+    # annotate("segment", x = 1, xend = 1.3, y = 1.9, yend = 1.9,
+    #          color = "grey10",
+    #          arrow = arrow(ends = "last", 
+    #                        angle = 15, 
+    #                        length = unit(.2,"cm")))+
+    # 
+    # annotate("text", x = 0.6, y = 2, hjust = 0, vjust = 0.5,
+    #          size = 3,
+    #          color = "grey10",
+    #          label = "Greater search intensity\nafter the news")+
+    # 
+    # annotate("segment", x = -1, xend = -1.3, y = 1.9, yend = 1.9,
+    #          color = "grey10",
+    #          arrow = arrow(ends = "last", 
+    #                        angle = 15, 
+    #                        length = unit(.2,"cm")))+
+    # 
+    # annotate("text", x = -0.6, y = 2, hjust =1, vjust = 0.5,
+    #          size = 3,
+    #          color = "grey10",
+    #          label = "Greater search intensity\nbefore the news")+
     theme(legend.position = "none")
 )
 
@@ -872,15 +875,13 @@ levels(table.M3$Parameter) <- c("Intercept",
                                 "Figures [yes]",
                                 "Other experts [yes]",
                                 "Sensationalism [yes]",
-                                "Event type [Bite]",
-                                "Event type [Deadly bite]")
+                                "               Event type [Bite]") # extra space for alignment
 
 #sort
 table.M3$Parameter <- factor(table.M3$Parameter, rev(c("Intercept",
                                                        "Circulation [Regional]",
                                                        "Country [USA]",
-                                                       "Event type [Bite]",
-                                                       "Event type [Deadly bite]",
+                                                       "               Event type [Bite]",
                                                        "Figures [yes]",
                                                        "Sensationalism [yes]",
                                                        "Errors [yes]",
@@ -951,19 +952,28 @@ vol$term <- factor(vol$term, c("Araneae", "spider", "spider bite", "brown reclus
 
 # Saving figures ----------------------------------------------------------
 
-pdf(file = "Figures/Figure_1_GTREND.pdf", width = 18, height = 5)
-ggpubr::ggarrange(plot1a, plot1b, plot1c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
+# pdf(file = "Figures/Figure_1_GTREND.pdf", width = 18, height = 5)
+# ggpubr::ggarrange(plot1a, plot1b, plot1c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
+# dev.off()
+# 
+# pdf(file = "Figures/Figure_2_WIKI.pdf", width = 18, height = 5)
+# ggpubr::ggarrange(plot2a, plot2b, plot2c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
+# dev.off()
+# 
+# pdf(file = "Figures/Figure_3_iNAT.pdf", width = 18, height = 5)
+# ggpubr::ggarrange(plot3a, plot3b, plot3c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
+# dev.off()
+
+pdf(file = "Figures/Figure_1_full.pdf", width = 16, height = 15)
+ggpubr::ggarrange(plot1a, plot1b, plot1c,
+                  plot2a, plot2b, plot2c,
+                  plot3a, plot3b, plot3c,
+                  ncol = 3, nrow = 3,
+                  labels = LETTERS[1:9])
+
 dev.off()
 
-pdf(file = "Figures/Figure_2_WIKI.pdf", width = 18, height = 5)
-ggpubr::ggarrange(plot2a, plot2b, plot2c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
-dev.off()
-
-pdf(file = "Figures/Figure_3_iNAT.pdf", width = 18, height = 5)
-ggpubr::ggarrange(plot3a, plot3b, plot3c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
-dev.off()
-
-pdf(file = "Figures/Figure_4_volume.pdf", width = 12, height = 5)
+pdf(file = "Figures/Figure_2_volume.pdf", width = 12, height = 5)
 plot4
 dev.off()
 
@@ -987,8 +997,7 @@ cm <- c("(Intercept)" = "Intercept",
         "termblack widow" = "Search Term [Black widow]",
         "termLatrodectus" = "Search Term [Latrodectus]",
         "termspider bite" = "Search Term [Spider bite]", 
-        "TypeEventBite"= "Event type [Bite]",
-        "TypeEventDeadly bite" = "Event type [Deadly bite]")
+        "TypeEventBite"= "Event type [Bite]")
 
 modelsummary::modelsummary(models, gof_omit = ".*",
              estimate = "{estimate} [{conf.low}, {conf.high}]",
