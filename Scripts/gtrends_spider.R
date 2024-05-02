@@ -353,9 +353,9 @@ table(db_delta_Gtrend$yr_m)
 table(db_delta_Gtrend$Newspaper)
 
 # Setting baselines
-db_delta_Gtrend <- within(db_delta_Gtrend, Regional <- relevel(circulation, ref = "Regional"))
-db_delta_Gtrend <- within(db_delta_Gtrend, TypeEvent <- relevel(TypeEvent, ref = "Encounter"))
-db_delta_Gtrend <- within(db_delta_Gtrend, term <- relevel(term, ref = "spider"))
+db_delta_Gtrend <- within(db_delta_Gtrend, Regional  <- relevel(circulation, ref = "Regional"))
+db_delta_Gtrend <- within(db_delta_Gtrend, TypeEvent <- relevel(TypeEvent, ref = "Bite"))
+db_delta_Gtrend <- within(db_delta_Gtrend, term      <- relevel(term, ref = "spider"))
 
 #data exploration: balancing factor levels
 table(db_delta_Gtrend$circulation) 
@@ -428,13 +428,13 @@ levels(table.M1$Parameter) <- c("Intercept",
                                 "Search Term [Black widow]",
                                 "Search Term [Brown recluse]",
                                 "Search Term [Spider bite]", 
-                                "Event type [Bite]")
+                                "Event type [Encounter]")
   
 #sort
 table.M1$Parameter <- factor(table.M1$Parameter, rev(c("Intercept", 
                                                        "Country [USA]",
                                                        "Circulation [Regional]",
-                                                       "Event type [Bite]",
+                                                       "Event type [Encounter]",
                                                        "Figures [yes]",
                                                        "Sensationalism [yes]",
                                                        "Errors [yes]",
@@ -609,7 +609,7 @@ table(db_delta_wiki$Newspaper)
 
 # Setting baselines
 db_delta_wiki <- within(db_delta_wiki, Regional <- relevel(circulation, ref = "Regional"))
-db_delta_wiki <- within(db_delta_wiki, TypeEvent <- relevel(TypeEvent, ref = "Encounter"))
+db_delta_wiki <- within(db_delta_wiki, TypeEvent <- relevel(TypeEvent, ref = "Bite"))
 db_delta_wiki <- within(db_delta_wiki, term <- relevel(term, ref = "spider"))
 
 #data exploration: balancing factor levels
@@ -683,12 +683,12 @@ levels(table.M2$Parameter) <- c("Intercept",
                                 "Search Term [Brown recluse]",
                                 "Search Term [Latrodectus]",
                                 "Search Term [Spider bite]", 
-                                "Event type [Bite]")
+                                "Event type [Encounter]")
 
 #sort
 table.M2$Parameter <- factor(table.M2$Parameter, rev(c("Intercept",
                                                        "Circulation [Regional]",
-                                                       "Event type [Bite]",
+                                                       "Event type [Encounter]",
                                                        "Figures [yes]",
                                                        "Sensationalism [yes]",
                                                        "Errors [yes]",
@@ -830,7 +830,7 @@ table(db_delta_iNat$Newspaper)
 
 # Setting baselines
 db_delta_iNat <- within(db_delta_iNat, Regional <- relevel(circulation, ref = "Regional"))
-db_delta_iNat <- within(db_delta_iNat, TypeEvent <- relevel(TypeEvent, ref = "Encounter"))
+db_delta_iNat <- within(db_delta_iNat, TypeEvent <- relevel(TypeEvent, ref = "Bite"))
 
 #data exploration: balancing factor levels
 table(db_delta_iNat$circulation) 
@@ -875,13 +875,13 @@ levels(table.M3$Parameter) <- c("Intercept",
                                 "Figures [yes]",
                                 "Other experts [yes]",
                                 "Sensationalism [yes]",
-                                "               Event type [Bite]") # extra space for alignment
+                                "           Event type [Encounter]") # extra space for alignment
 
 #sort
 table.M3$Parameter <- factor(table.M3$Parameter, rev(c("Intercept",
                                                        "Circulation [Regional]",
                                                        "Country [USA]",
-                                                       "               Event type [Bite]",
+                                                       "           Event type [Encounter]",
                                                        "Figures [yes]",
                                                        "Sensationalism [yes]",
                                                        "Errors [yes]",
@@ -937,7 +937,6 @@ summary(m7)
 # summary(m9)
 
 ### plot
-
 vol <- within(vol, term <- relevel(term, ref = "Araneae"))
 vol$term <- factor(vol$term, c("Araneae", "spider", "spider bite", "brown recluse", "Latrodectus"))
 
@@ -945,8 +944,8 @@ vol$term <- factor(vol$term, c("Araneae", "spider", "spider bite", "brown reclus
         facet_wrap(vars(data_source), scales = "free") +
         geom_point() +
         geom_smooth(method = "glm.nb")+
-        scale_color_manual("Search term", values = c("grey40",my.colors))+
-        scale_fill_manual("Search term", values = c("grey40",my.colors))+
+        scale_color_manual("Search term", values = c(my.colors[1],my.colors))+
+        scale_fill_manual("Search term", values = c(my.colors[1],my.colors))+
         labs(x = "Number of published news (monthly)", y = "Number of hits")
   )
 
