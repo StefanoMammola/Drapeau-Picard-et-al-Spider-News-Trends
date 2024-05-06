@@ -94,103 +94,103 @@ str(vol)
 
 colnames(vol)[6] <- "n"
 
-#### Extra vars
-var_vol <- db[db$day == 0,]
-
-var_vol$year.month <- paste(var_vol$yr, var_vol$m, sep = "-") |> as.factor()
-
-#english
-n_news                 <- c()
-Sensationalism         <- c()
-Errors                 <- c()
-Expert_doctor          <- c()
-Expert_arachnologist   <- c()
-Bite                   <- c()
-Deadly_bite            <- c()
-
-for(i in 1:nlevels(var_vol$year.month)){
-  
-  var_vol_i <- var_vol[var_vol$year.month == levels(var_vol$year.month)[i],]
-  var_vol_i <- droplevels(var_vol_i)
-  
-  n_news                 <- append(n_news, nrow(var_vol_i))
-  Sensationalism         <- append(Sensationalism ,sum(var_vol_i$Sensationalism, na.rm = TRUE)/nrow(var_vol_i))
-  Errors                 <- append(Errors ,sum(as.numeric(as.character(var_vol_i$Errors)), na.rm = TRUE)/nrow(var_vol_i))
-  Expert_doctor          <- append(Expert_doctor ,sum(as.numeric(as.character(var_vol_i$Expert_doctor)), na.rm = TRUE)/nrow(var_vol_i))
-  Expert_arachnologist   <- append(Expert_arachnologist ,sum(as.numeric(as.character(var_vol_i$Expert_arachnologist)), na.rm = TRUE)/nrow(var_vol_i))
-  Bite                   <- append(Bite, sum(var_vol_i$Bite, na.rm = TRUE)/nrow(var_vol_i))
-  Deadly_bite            <- append(Deadly_bite,sum(var_vol_i$Death, na.rm = TRUE)/nrow(var_vol_i))
-
-}
-
-var_vol.en <- data.frame(year.month = levels(var_vol$year.month), country = rep("english", length(n_news)), n_news, Sensationalism, Errors, Expert_doctor, Expert_arachnologist, Bite, Deadly_bite)
-
-#canada
-var_vol.can <- var_vol[var_vol$country == "Canada",] ; var_vol.can <- droplevels(var_vol.can)
-
-n_news                 <- c()
-Sensationalism         <- c()
-Errors                 <- c()
-Expert_doctor          <- c()
-Expert_arachnologist   <- c()
-Bite                   <- c()
-Deadly_bite            <- c()
-
-for(i in 1:nlevels(var_vol.can$year.month)){
-  
-  var_vol_i <- var_vol.can[var_vol.can$year.month == levels(var_vol.can$year.month)[i],]
-  var_vol_i <- droplevels(var_vol_i)
-  
-  n_news                 <- append(n_news, nrow(var_vol_i))
-  Sensationalism         <- append(Sensationalism ,sum(var_vol_i$Sensationalism, na.rm = TRUE)/nrow(var_vol_i))
-  Errors                 <- append(Errors ,sum(as.numeric(as.character(var_vol_i$Errors)), na.rm = TRUE)/nrow(var_vol_i))
-  Expert_doctor          <- append(Expert_doctor ,sum(as.numeric(as.character(var_vol_i$Expert_doctor)), na.rm = TRUE)/nrow(var_vol_i))
-  Expert_arachnologist   <- append(Expert_arachnologist ,sum(as.numeric(as.character(var_vol_i$Expert_arachnologist)), na.rm = TRUE)/nrow(var_vol_i))
-  Bite                   <- append(Bite, sum(var_vol_i$Bite, na.rm = TRUE)/nrow(var_vol_i))
-  Deadly_bite            <- append(Deadly_bite,sum(var_vol_i$Death, na.rm = TRUE)/nrow(var_vol_i))
-  
-}
-
-var_vol.can <- data.frame(year.month = levels(var_vol.can$year.month), country = rep("Canada", length(n_news)), 
-                          n_news, Sensationalism, Errors, Expert_doctor, Expert_arachnologist, Bite, Deadly_bite)
-
-#USA
-var_vol.USA <- var_vol[var_vol$country == "USA",] ; var_vol.USA <- droplevels(var_vol.USA)
-
-n_news                 <- c()
-Sensationalism         <- c()
-Errors                 <- c()
-Expert_doctor          <- c()
-Expert_arachnologist   <- c()
-Bite                   <- c()
-Deadly_bite            <- c()
-
-for(i in 1:nlevels(var_vol.USA$year.month)){
-  
-  var_vol_i <- var_vol.USA[var_vol.USA$year.month == levels(var_vol.USA$year.month)[i],]
-  var_vol_i <- droplevels(var_vol_i)
-  
-  n_news                 <- append(n_news, nrow(var_vol_i))
-  Sensationalism         <- append(Sensationalism ,sum(var_vol_i$Sensationalism, na.rm = TRUE)/nrow(var_vol_i))
-  Errors                 <- append(Errors ,sum(as.numeric(as.character(var_vol_i$Errors)), na.rm = TRUE)/nrow(var_vol_i))
-  Expert_doctor          <- append(Expert_doctor ,sum(as.numeric(as.character(var_vol_i$Expert_doctor)), na.rm = TRUE)/nrow(var_vol_i))
-  Expert_arachnologist   <- append(Expert_arachnologist ,sum(as.numeric(as.character(var_vol_i$Expert_arachnologist)), na.rm = TRUE)/nrow(var_vol_i))
-  Bite                   <- append(Bite, sum(var_vol_i$Bite, na.rm = TRUE)/nrow(var_vol_i))
-  Deadly_bite            <- append(Deadly_bite,sum(var_vol_i$Death, na.rm = TRUE)/nrow(var_vol_i))
-  
-}
-
-var_vol.USA <- data.frame(year.month = levels(var_vol.USA$year.month), country = rep("US", length(n_news)), n_news, Sensationalism, Errors, Expert_doctor, Expert_arachnologist, Bite, Deadly_bite)
-
-# merge
-var_vol.2 <- rbind(var_vol.en, var_vol.can, var_vol.USA)
-var_vol.2$xy <- paste(var_vol.2$year.month, var_vol.2$country, sep = "_")  
-var_vol.2 <- var_vol.2 %>%  dplyr::select(-c("year.month","country","n_news"))
-vol$xy <- paste(vol$year.month, vol$country, sep = "_")
-
-vol <- vol %>% dplyr::left_join(var_vol.2, by = "xy") 
-
-vol[,8:13][is.na(vol[,8:13])] <- 0
+# #### Extra vars
+# var_vol <- db[db$day == 0,]
+# 
+# var_vol$year.month <- paste(var_vol$yr, var_vol$m, sep = "-") |> as.factor()
+# 
+# #english
+# n_news                 <- c()
+# Sensationalism         <- c()
+# Errors                 <- c()
+# Expert_doctor          <- c()
+# Expert_arachnologist   <- c()
+# Bite                   <- c()
+# Deadly_bite            <- c()
+# 
+# for(i in 1:nlevels(var_vol$year.month)){
+#   
+#   var_vol_i <- var_vol[var_vol$year.month == levels(var_vol$year.month)[i],]
+#   var_vol_i <- droplevels(var_vol_i)
+#   
+#   n_news                 <- append(n_news, nrow(var_vol_i))
+#   Sensationalism         <- append(Sensationalism ,sum(var_vol_i$Sensationalism, na.rm = TRUE)/nrow(var_vol_i))
+#   Errors                 <- append(Errors ,sum(as.numeric(as.character(var_vol_i$Errors)), na.rm = TRUE)/nrow(var_vol_i))
+#   Expert_doctor          <- append(Expert_doctor ,sum(as.numeric(as.character(var_vol_i$Expert_doctor)), na.rm = TRUE)/nrow(var_vol_i))
+#   Expert_arachnologist   <- append(Expert_arachnologist ,sum(as.numeric(as.character(var_vol_i$Expert_arachnologist)), na.rm = TRUE)/nrow(var_vol_i))
+#   Bite                   <- append(Bite, sum(var_vol_i$Bite, na.rm = TRUE)/nrow(var_vol_i))
+#   Deadly_bite            <- append(Deadly_bite,sum(var_vol_i$Death, na.rm = TRUE)/nrow(var_vol_i))
+# 
+# }
+# 
+# var_vol.en <- data.frame(year.month = levels(var_vol$year.month), country = rep("english", length(n_news)), n_news, Sensationalism, Errors, Expert_doctor, Expert_arachnologist, Bite, Deadly_bite)
+# 
+# #canada
+# var_vol.can <- var_vol[var_vol$country == "Canada",] ; var_vol.can <- droplevels(var_vol.can)
+# 
+# n_news                 <- c()
+# Sensationalism         <- c()
+# Errors                 <- c()
+# Expert_doctor          <- c()
+# Expert_arachnologist   <- c()
+# Bite                   <- c()
+# Deadly_bite            <- c()
+# 
+# for(i in 1:nlevels(var_vol.can$year.month)){
+#   
+#   var_vol_i <- var_vol.can[var_vol.can$year.month == levels(var_vol.can$year.month)[i],]
+#   var_vol_i <- droplevels(var_vol_i)
+#   
+#   n_news                 <- append(n_news, nrow(var_vol_i))
+#   Sensationalism         <- append(Sensationalism ,sum(var_vol_i$Sensationalism, na.rm = TRUE)/nrow(var_vol_i))
+#   Errors                 <- append(Errors ,sum(as.numeric(as.character(var_vol_i$Errors)), na.rm = TRUE)/nrow(var_vol_i))
+#   Expert_doctor          <- append(Expert_doctor ,sum(as.numeric(as.character(var_vol_i$Expert_doctor)), na.rm = TRUE)/nrow(var_vol_i))
+#   Expert_arachnologist   <- append(Expert_arachnologist ,sum(as.numeric(as.character(var_vol_i$Expert_arachnologist)), na.rm = TRUE)/nrow(var_vol_i))
+#   Bite                   <- append(Bite, sum(var_vol_i$Bite, na.rm = TRUE)/nrow(var_vol_i))
+#   Deadly_bite            <- append(Deadly_bite,sum(var_vol_i$Death, na.rm = TRUE)/nrow(var_vol_i))
+#   
+# }
+# 
+# var_vol.can <- data.frame(year.month = levels(var_vol.can$year.month), country = rep("Canada", length(n_news)), 
+#                           n_news, Sensationalism, Errors, Expert_doctor, Expert_arachnologist, Bite, Deadly_bite)
+# 
+# #USA
+# var_vol.USA <- var_vol[var_vol$country == "USA",] ; var_vol.USA <- droplevels(var_vol.USA)
+# 
+# n_news                 <- c()
+# Sensationalism         <- c()
+# Errors                 <- c()
+# Expert_doctor          <- c()
+# Expert_arachnologist   <- c()
+# Bite                   <- c()
+# Deadly_bite            <- c()
+# 
+# for(i in 1:nlevels(var_vol.USA$year.month)){
+#   
+#   var_vol_i <- var_vol.USA[var_vol.USA$year.month == levels(var_vol.USA$year.month)[i],]
+#   var_vol_i <- droplevels(var_vol_i)
+#   
+#   n_news                 <- append(n_news, nrow(var_vol_i))
+#   Sensationalism         <- append(Sensationalism ,sum(var_vol_i$Sensationalism, na.rm = TRUE)/nrow(var_vol_i))
+#   Errors                 <- append(Errors ,sum(as.numeric(as.character(var_vol_i$Errors)), na.rm = TRUE)/nrow(var_vol_i))
+#   Expert_doctor          <- append(Expert_doctor ,sum(as.numeric(as.character(var_vol_i$Expert_doctor)), na.rm = TRUE)/nrow(var_vol_i))
+#   Expert_arachnologist   <- append(Expert_arachnologist ,sum(as.numeric(as.character(var_vol_i$Expert_arachnologist)), na.rm = TRUE)/nrow(var_vol_i))
+#   Bite                   <- append(Bite, sum(var_vol_i$Bite, na.rm = TRUE)/nrow(var_vol_i))
+#   Deadly_bite            <- append(Deadly_bite,sum(var_vol_i$Death, na.rm = TRUE)/nrow(var_vol_i))
+#   
+# }
+# 
+# var_vol.USA <- data.frame(year.month = levels(var_vol.USA$year.month), country = rep("US", length(n_news)), n_news, Sensationalism, Errors, Expert_doctor, Expert_arachnologist, Bite, Deadly_bite)
+# 
+# # merge
+# var_vol.2 <- rbind(var_vol.en, var_vol.can, var_vol.USA)
+# var_vol.2$xy <- paste(var_vol.2$year.month, var_vol.2$country, sep = "_")  
+# var_vol.2 <- var_vol.2 %>%  dplyr::select(-c("year.month","country","n_news"))
+# vol$xy <- paste(vol$year.month, vol$country, sep = "_")
+# 
+# vol <- vol %>% dplyr::left_join(var_vol.2, by = "xy") 
+# 
+# vol[,8:13][is.na(vol[,8:13])] <- 0
 
 #######################
 # Analysis for Gtrend #
@@ -913,11 +913,10 @@ performance::check_overdispersion(m4)
 m5 <- MASS::glm.nb(hits ~ n, data = vol[vol$data_source == "iNaturalist",])
 
 #wiki
-m6 <- glm(hits ~ n * term, data = vol[vol$data_source == "Wikipedia",], family = "poisson")
+m6 <- glm(hits ~ n * term, data = droplevels(vol[vol$data_source == "Wikipedia",]), family = "poisson")
 performance::check_overdispersion(m6)
 
-m7 <- MASS::glm.nb(hits ~ n + term, data = vol[vol$data_source == "Wikipedia",])
-
+m7 <- MASS::glm.nb(hits ~ n + term, data = droplevels(vol[vol$data_source == "Wikipedia",]))
 summary(m7)
 
 # # proportion models
