@@ -6,8 +6,8 @@
 # 'R script to reproduce the full analysis'
 ## ------------------------------------------------------------------------
 
-# Analysis performed with R (v. R 4.3.0) and R studio (v. 2023.03.1+446)
-# Authors: Stefano Mammola
+# Analysis with R (v. R 4.3.0) and R studio (v. 2023.03.1+446)
+# Author of the code: Stefano Mammola
 
 ##############
 # R packages #
@@ -954,18 +954,6 @@ vol$term <- factor(vol$term, c("spider", "spider bite", "brown recluse", "Latrod
 
 
 # Saving figures ----------------------------------------------------------
-
-# pdf(file = "Figures/Figure_1_GTREND.pdf", width = 18, height = 5)
-# ggpubr::ggarrange(plot1a, plot1b, plot1c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
-# dev.off()
-# 
-# pdf(file = "Figures/Figure_2_WIKI.pdf", width = 18, height = 5)
-# ggpubr::ggarrange(plot2a, plot2b, plot2c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
-# dev.off()
-# 
-# pdf(file = "Figures/Figure_3_iNAT.pdf", width = 18, height = 5)
-# ggpubr::ggarrange(plot3a, plot3b, plot3c, ncol = 3, nrow = 1, labels = c("A", "B", "C"))
-# dev.off()
 
 pdf(file = "Figures/Figure_1_full.pdf", width = 16, height = 15)
 ggpubr::ggarrange(plot1a, plot1b, plot1c,
