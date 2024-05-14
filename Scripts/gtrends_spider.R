@@ -542,12 +542,14 @@ db_trend$search_term <- factor(db_trend$search_term, c("spider", "spider bite", 
     geom_smooth(method = 'loess', se = TRUE) +
     #geom_smooth(method='gam', formula = y ~ s(x), se = TRUE) +
     scale_x_continuous(breaks = -7:7, labels = as.character(-7:7))+
-    scale_color_manual("", values = my.colors)+
-    scale_fill_manual("", values = my.colors)+
+    scale_color_manual("", values = my.colors, labels = c("spider", "spider bite", "brown recluse", expression(italic("Latrodectus"))))+
+    scale_fill_manual("", values = my.colors, labels = c("spider", "spider bite", "brown recluse", expression(italic("Latrodectus"))))+
     labs(x = NULL,
          y = "Hits in Wikipedia")+
-    theme(legend.position = "top")
+    theme(legend.position = "top",
+          legend.text.align = 0)
 )
+
 
 # Plot wiki ---------------------------------------
 
@@ -562,7 +564,6 @@ db_delta_wiki$term <- factor(db_delta_wiki$term, c("spider", "spider bite", "bro
     
     labs(x = NULL,
          y = "Density of values by search term")+
-    
     ggdist::stat_slab(
       # data = ~ .x,
       # aes(fill_ramp = stat(abs(x))),
@@ -595,7 +596,9 @@ db_delta_wiki$term <- factor(db_delta_wiki$term, c("spider", "spider bite", "bro
     #          size = 3,
     #          color = "grey10",
     #          label = "Greater search intensity\nbefore the news")+
-    theme(legend.position = "none")
+    theme(legend.position = "none",
+          axis.text.y = element_text(face = c(rep("plain", 3),"italic"))
+          )
 )
 
 # Modelling ---------------------------------------------------------------
@@ -768,7 +771,7 @@ db_delta_iNat <- db_delta_iNat %>%  mutate_if(is.character, as.factor)
     scale_fill_manual("", values = my.colors)+
 
     labs(x = "Day",
-         y = "Hits in iNaturalist")
+         y = "Uploads in iNaturalist")
 )
 
 # Plot INat ---------------------------------------
@@ -777,7 +780,7 @@ db_delta_iNat <- db_delta_iNat %>%  mutate_if(is.character, as.factor)
     xlim(-1.5, 1.5)+
     geom_vline(aes(xintercept=0),color="grey10", linetype="dashed", linewidth=.3)+
     
-    labs(x = "Intercept change for search volume in iNaturalist",
+    labs(x = "Intercept change for search volume",
          y = "Density of values by search term")+
     
     ggdist::stat_slab(
@@ -903,7 +906,7 @@ sign.M3 <- ifelse(table.M3$p > 0.05, "", " *") #Significance
 
 ### Model
 
-levels(vol$term) <- c("Araneae", "brown recluse", "Latrodectus", "spider", "spider bite")
+levels(vol$term) <- c("spider", "brown recluse", "Latrodectus", "spider", "spider bite")
 vol <- within(vol, term <- relevel(term, ref = "spider"))
 
 # iNat
@@ -936,17 +939,19 @@ summary(m7)
 # summary(m9)
 
 ### plot
-vol <- within(vol, term <- relevel(term, ref = "Araneae"))
-vol$term <- factor(vol$term, c("Araneae", "spider", "spider bite", "brown recluse", "Latrodectus"))
+vol <- within(vol, term <- relevel(term, ref = "spider"))
+vol$term <- factor(vol$term, c("spider", "spider bite", "brown recluse", "Latrodectus"))
 
 (plot4 <- vol %>% na.omit() %>% ggplot2::ggplot(aes(x = n, y = hits, fill = term, col = term)) +
         facet_wrap(vars(data_source), scales = "free") +
         geom_point() +
         geom_smooth(method = "glm.nb")+
-        scale_color_manual("Search term", values = c(my.colors[1],my.colors))+
-        scale_fill_manual("Search term", values = c(my.colors[1],my.colors))+
-        labs(x = "Number of published news (monthly)", y = "Number of hits")
-  )
+        scale_color_manual("Search term", values = c(my.colors), labels = c("spider", "spider bite", "brown recluse", expression(italic("Latrodectus"))))+
+        scale_fill_manual("Search term", values = c(my.colors), labels = c("spider", "spider bite", "brown recluse", expression(italic("Latrodectus"))))+
+        labs(x = "Number of published news (monthly)", y = "Number of hits")+
+        theme(legend.text.align = 0)
+)
+
 
 # Saving figures ----------------------------------------------------------
 
